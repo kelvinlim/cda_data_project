@@ -27,10 +27,11 @@ Installed java jdk21
 
 For PowerShell to set JAVA_HOME and set path
 
+```
 $env:JAVA_HOME = "C:\Program Files\Java\jdk-21"
 $env:Path += ";$env:JAVA_HOME\bin"
 echo $env:JAVA_HOME
-
+```
 
 Also need the py-tetrad code, mainly for the tetrad jar file
 
@@ -38,3 +39,63 @@ git clone https://github.com/cmu-phil/py-tetrad.git
 
 Place a copy of tetrad-current.jar in the resources folder.
 
+Some notes on installing java on windows without admin
+
+https://javafar.com/java-install-no-admin-rights/
+
+
+
+## Installing a portable version of jdk
+
+Creating a portable version of the Java SDK 21 for Windows involves downloading the JDK as a ZIP file and setting it up in a way that doesn't require installation. Here are the steps:
+
+1. **Download the JDK ZIP File**:
+   - Go to the [Oracle JDK 21 download page](https://www.oracle.com/java/technologies/javase/jdk21-archive-downloads.html) or the [OpenJDK 21 download page](https://jdk.java.net/21/).
+   - Download the ZIP file for Windows (e.g., `openjdk-21_windows-x64_bin.zip`).
+
+2. **Extract the ZIP File**:
+   - Extract the contents of the ZIP file to a directory where you have write permissions, such as `C:\Users\YourUsername\jdk-21`.
+
+3. **Set Up Environment Variables Temporarily**:
+   - Open Command Prompt and set the `JAVA_HOME` and `PATH` variables for the current session:
+     ```cmd
+     set JAVA_HOME=C:\Users\YourUsername\jdk-21
+     set PATH=%JAVA_HOME%\bin;%PATH%
+     ```
+   - These settings will only last for the duration of the Command Prompt session.
+
+4. **Create a Batch File for Convenience**:
+   - To avoid setting the environment variables every time, you can create a batch file (`set_java_home.bat`) with the following content:
+     ```cmd
+     @echo off
+     set JAVA_HOME=C:\Users\YourUsername\jdk-21
+     set PATH=%JAVA_HOME%\bin;%PATH%
+     cmd
+     ```
+   - Double-clicking this batch file will open a new Command Prompt window with the environment variables set.
+
+5. **Verify the Setup**:
+   - In the Command Prompt, run:
+     ```cmd
+     java -version
+     javac -version
+     ```
+   - This should display the version of Java and the Java compiler, confirming that the setup is correct.
+
+By following these steps, you can create a portable version of JDK 21 that you can use without needing administrator privileges⁶[^10^].
+
+Would you like more details on any of these steps?
+
+Source: Conversation with Copilot, 9/29/2024
+(1) Steps to Install Java 21 (LTS JDK) on Windows 11 - Code2care. https://code2care.org/windows-11/steps-to-install-java-21-lts-jdk-on-windows-11/.
+(2) GitHub - Vinetos/java-portable: Install a portable version of the JDK .... https://github.com/Vinetos/java-portable.
+(3) Download and Install OpenJDK 21 on Windows. https://www.youtube.com/watch?v=izf3v2UhQIA.
+(4) How to Install Java JDK 21 in Windows 11 | Create First Project (2023). https://www.youtube.com/watch?v=LJfvilPnz-c.
+(5) "how To Install Java 21 On Windows 10 // Jdk 21 On Windows 10 // Installation Complete Guide // Tcwf. https://www.youtube.com/watch?v=nwsz8L3O_Gk.
+(6) Installation of Java 21 (OpenJDK 21) on Windows 11/10. https://techviewleo.com/installation-of-java-openjdk-21-on-windows/.
+(7) Installation of the JDK on Microsoft Windows Platforms - Oracle Help Center. https://docs.oracle.com/en/java/javase/21/install/installation-jdk-microsoft-windows-platforms.html.
+(8) undefined. https://www.youtube.com/playlist?list=PLcyWThEaGBh1yQkkaa-6sLNVBhih8XbD-.
+(9) undefined. https://jdk.java.net/java-se-ri/21.
+(10) How to Install Java JDK 21 on Windows 10 | Amit Thinks. https://www.youtube.com/watch?v=4Bp3AbR8ne8.
+(11) Installation of the JDK on Microsoft Windows Platforms - Oracle Help Center. https://docs.oracle.com/en/java/javase/22/install/installation-jdk-microsoft-windows-platforms.html.
+(12) jdkPortable 64-bit (portable JDK environment) - PortableApps.com. https://portableapps.com/apps/utilities/jdkportable64.
