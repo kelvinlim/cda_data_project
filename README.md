@@ -16,7 +16,7 @@ Some cases to use with fges
 
 Stored in data directory
 
-sub_1019 has 118 rows and 13(direct)/15 edges
-sub_1008 has 100 rows and 7(direct)/13 edges
-sub_1033 has 93 rows and  10(direct)/10 edges
-sub_1112 has 89 rows and 9(direct)/15 edges 
+1. sub_1019 has 118 rows and 13(direct)/15 edges
+2. sub_1008 has 100 rows and 7(direct)/13 edges
+3. sub_1033 has 93 rows and  10(direct)/10 edges
+4. sub_1112 has 89 rows and 9(direct)/15 edges 
