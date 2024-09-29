@@ -20,3 +20,21 @@ Stored in data directory
 2. sub_1008 has 100 rows and 7(direct)/13 edges
 3. sub_1033 has 93 rows and  10(direct)/10 edges
 4. sub_1112 has 89 rows and 9(direct)/15 edges 
+
+## Windows installation
+
+Installed java jdk21
+
+For PowerShell to set JAVA_HOME and set path
+
+$env:JAVA_HOME = "C:\Program Files\Java\jdk-21"
+$env:Path += ";$env:JAVA_HOME\bin"
+echo $env:JAVA_HOME
+
+
+Also need the py-tetrad code, mainly for the tetrad jar file
+
+git clone https://github.com/cmu-phil/py-tetrad.git
+
+Place a copy of tetrad-current.jar in the resources folder.
+
