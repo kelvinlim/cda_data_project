@@ -33,6 +33,14 @@ $env:Path += ";$env:JAVA_HOME\bin"
 echo $env:JAVA_HOME
 ```
 
+For VA Azure virtual desktop
+
+```
+$env:JAVA_HOME = "R:\DVBIC\jdk21.0.4_7"
+$env:Path += ";$env:JAVA_HOME\bin"
+echo $env:JAVA_HOME
+
+```
 Also need the py-tetrad code, mainly for the tetrad jar file
 
 git clone https://github.com/cmu-phil/py-tetrad.git
@@ -99,3 +107,13 @@ Source: Conversation with Copilot, 9/29/2024
 (10) How to Install Java JDK 21 on Windows 10 | Amit Thinks. https://www.youtube.com/watch?v=4Bp3AbR8ne8.
 (11) Installation of the JDK on Microsoft Windows Platforms - Oracle Help Center. https://docs.oracle.com/en/java/javase/22/install/installation-jdk-microsoft-windows-platforms.html.
 (12) jdkPortable 64-bit (portable JDK environment) - PortableApps.com. https://portableapps.com/apps/utilities/jdkportable64.
+
+
+## For windows
+AVD
+
+```
+release = '2019Server'
+system='Windows'
+```
+

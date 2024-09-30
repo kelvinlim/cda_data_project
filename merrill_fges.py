@@ -1,6 +1,21 @@
 import jpype.imports
+import os
+import platform
+
+# get platform information
+uname_info = platform.uname()
+
+if uname_info.node == 'c30-wsacsk4hm3':
+    # avd is azure virtual desktop version 
+
+    # set JAVA_HOME
+    os.environ['JAVA_HOME'] = "R:\DVBIC\jdk21.0.4_7"
+    # check for env JAVA_HOME, this was None
+    java_home = os.environ.get('JAVA_HOME')
+
 
 try:
+    # works for win11
     jpype.startJVM(classpath=[f"resources/tetrad-current.jar"])
     #jpype.startJVM(classpath=[f"py-tetrad/pytetrad/resources/tetrad-current.jar"])
     
