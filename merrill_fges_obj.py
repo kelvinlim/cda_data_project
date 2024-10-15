@@ -131,7 +131,9 @@ class MerrillFGES:
                 setEdges = fges_results['setEdges']
                 setNodes = fges_results['setNodes']
                 setPairs = fges_results['setPairs']
-                ESMean = estimates['mean_abs_estimates'],
+                ESMean = estimates['mean_abs_estimates'], # becomes a tuple! bug?
+                if type(ESMean) == tuple:
+                    ESMean = ESMean[0]
                 ESStd = estimates['std_abs_estimates']
                 
                 if proportion==1.0:
@@ -177,22 +179,36 @@ class MerrillFGES:
         # create the plots
         plt.figure(figsize=(10, 6))
         sns.violinplot(x='proportion', y='diceCoeff', data=summaryDf)
-        plt.title(f'Violin Plots at Different Proportions for edges')
+        plt.title(f'Violin Plots at Different Resampling  Proportions for edges')
         plt.savefig('edges.png', format='png', dpi=300, bbox_inches='tight')
         plt.show()
 
         plt.figure(figsize=(10, 6))
         sns.violinplot(x='proportion', y='diceCoeffNodes', data=summaryDf)
-        plt.title(f'Violin Plots at Different Proportions for nodes')
+        plt.title(f'Violin Plots at Different Resampling  Proportions for nodes')
         plt.savefig('nodes.png', format='png', dpi=300, bbox_inches='tight')
         plt.show()
 
         plt.figure(figsize=(10, 6))
         sns.violinplot(x='proportion', y='diceCoeffPairs', data=summaryDf)
-        plt.title(f'Violin Plots at Different Proportions for pairs')
+        plt.title(f'Violin Plots at Different Resampling  Proportions for pairs')
         plt.savefig('pairs.png', format='png', dpi=300, bbox_inches='tight')
         plt.show()
 
+        # ES mean
+        plt.figure(figsize=(10, 6))
+        sns.violinplot(x='proportion', y='ESMean', data=summaryDf)
+        plt.title(f'Violin Plots at Different Resampling  Proportions for ESMean')
+        plt.savefig('esmean.png', format='png', dpi=300, bbox_inches='tight')
+        plt.show()
+        
+        # ES std
+        plt.figure(figsize=(10, 6))
+        sns.violinplot(x='proportion', y='ESStd', data=summaryDf)
+        plt.title(f'Violin Plots at Different Resampling  Proportions for ESStd')
+        plt.savefig('esstd.png', format='png', dpi=300, bbox_inches='tight')
+        plt.show()
+                
     def summarize_estimates(self, df):
         """
         Summarize the estimates
@@ -202,9 +218,9 @@ class MerrillFGES:
         # get the absolute value of the estimates
         abs_estimates = estimates.abs()
         # get the mean of the absolute values
-        mean_abs_estimates = abs_estimates.mean()
+        mean_abs_estimates = float(abs_estimates.mean())
         # get the standard deviation of the absolute values
-        std_abs_estimates = abs_estimates.std()
+        std_abs_estimates = float(abs_estimates.std())
         return {'mean_abs_estimates': mean_abs_estimates, 'std_abs_estimates': std_abs_estimates}
      
 
