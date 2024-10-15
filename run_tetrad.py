@@ -14,6 +14,8 @@ import pandas as pd
 import tools.TetradSearch as ts
 import tools.translate as tr
 
+import semopy
+
 
 __version_info__ = ('0', '1', '0')
 __version__ = '.'.join(__version_info__)
@@ -39,51 +41,6 @@ class TetradWrap:
             self.config[key] = value
             
         pass
-
-
-    def dice_coefficient(self, set_a, set_b):
-        # Calculate the intersection of the two sets
-        intersection = len(set_a.intersection(set_b))
-        
-        # Calculate the Dice coefficient
-        dice = (2 * intersection) / (len(set_a) + len(set_b))
-        
-        return dice
-
-    def extract_edges(self, text):
-        """
-        Extract out the edges between Graph Edges and Graph Attributes
-        """
-        edges = set()
-        nodes = set()
-        pairs = set()  # alphabetical order of nodes of an edge
-        # get the lines
-        lines = text.split('\n')
-        startFlag=False  # True when we are in the edges, False when not
-        for line in lines:
-            if startFlag == False:
-                if "Graph Edges:" in line:
-                    startFlag = True
-                    continue  # continue to next line
-            if startFlag == True:
-                # check if there is edge information a '--'
-                if '--' in line:
-                    # this is an edge so add to the set
-                    # strip out the number in front  1. drinks --> happy
-                    # convert to a string
-                    linestr = str(line)
-                    clean_edge = linestr.split('. ')[1]
-                    edges.add(clean_edge)
-                    
-                    # add nodes
-                    nodeA = clean_edge.split(' ')[0]
-                    nodes.add(nodeA)
-                    nodeB = clean_edge.split(' ')[2]
-                    nodes.add(nodeB)
-                    combined_string = ''.join(sorted([nodeA, nodeB]))
-                    pairs.add(combined_string)
-                    pass
-        return edges, nodes, pairs    
 
     def jvm_initialize(self):
         """
@@ -126,16 +83,80 @@ class TetradWrap:
     def load_df(self,df):
         self.data = tr.pandas_data_to_tetrad(df)
 
-    def test_search(self):
+    def search_init(self,df=None):
+        """
+        returns the search object with dummy data
+        """
+        
+        # simple test data frame
+        test_df = pd.DataFrame({
+            'drinks': [1, 2, 3, 4, 5],
+            'sad': [5, 4, 3, 2, 1],
+            'irr': [1, 2, 3, 4, 5],
+            'relax': [5, 4, 3, 2, 1],
+            'happy': [1, 2, 3, 4, 5],
+            'energ': [5, 4, 3, 2, 1],
+            'stress': [1, 2, 3, 4, 5],
+            'lagdrinks': [1, 2, 3, 4, 5],
+            'lagsad': [5, 4, 3, 2, 1],
+            'lagirr': [1, 2, 3, 4, 5],
+            'lagrelax': [5, 4, 3, 2, 1],
+            'laghappy': [1, 2, 3, 4, 5],
+            'lagenerg': [5, 4, 3, 2, 1],
+            'lagstress': [1, 2, 3, 4, 5]
+        })
+        
+        if df is None:
+            df = test_df
+        search = ts.TetradSearch(df)
+        return search
+
+    def extract_edges(self, text):
+        """
+        Extract out the edges between Graph Edges and Graph Attributes
+        """
+        edges = set()
+        nodes = set()
+        pairs = set()  # alphabetical order of nodes of an edge
+        # get the lines
+        lines = text.split('\n')
+        startFlag=False  # True when we are in the edges, False when not
+        for line in lines:
+            if startFlag == False:
+                if "Graph Edges:" in line:
+                    startFlag = True
+                    continue  # continue to next line
+            if startFlag == True:
+                # check if there is edge information a '--'
+                if '--' in line:
+                    # this is an edge so add to the set
+                    # strip out the number in front  1. drinks --> happy
+                    # convert to a string
+                    linestr = str(line)
+                    clean_edge = linestr.split('. ')[1]
+                    edges.add(clean_edge)
+                    
+                    # add nodes
+                    nodeA = clean_edge.split(' ')[0]
+                    nodes.add(nodeA)
+                    nodeB = clean_edge.split(' ')[2]
+                    nodes.add(nodeB)
+                    combined_string = ''.join(sorted([nodeA, nodeB]))
+                    pairs.add(combined_string)
+                    pass
+        return edges, nodes, pairs    
+
+    
+    def test_search(self, test_file = "data/sub_1019.csv"):
         """
         test running a search
         """
         # read in the data file into a pandas df
-        test_file = "data/sub_1019.csv"
         df = pd.read_csv(test_file, sep=",")
         df = df.astype({col: "float64" for col in df.columns})
         
-        search = ts.TetradSearch(df)
+        # search = ts.TetradSearch(df)
+        search = self.search_init(df)
         
         ## Use a SEM BIC score
         res =search.use_sem_bic(penalty_discount=1)
@@ -163,17 +184,85 @@ class TetradWrap:
         x = search.run_fges()
         soutput = search.get_string()
         setEdges, setNodes, setPairs = self.extract_edges(soutput)
-        pass
+        
+        lavaan_model = self.edges_to_lavaan(setEdges)
+        
+        # run semopy
+        sem_results = self.run_semopy(lavaan_model, df)
+        
+        # get the estmates
+        estimates_sem = sem_results['estimates']
+        
+        # summary of the estimates
+        estimates = self.summarize_estimates(estimates_sem)
+        
+        result = {'setEdges': setEdges, 
+                  'setNodes': setNodes, 
+                  'setPairs': setPairs, 
+                  'ESMean': estimates['mean_abs_estimates'],
+                  'ESStd': estimates['std_abs_estimates'],
+                  } 
+        
+        return result
 
+    def summarize_estimates(self, df):
+        """
+        Summarize the estimates
+        """
+        # get the Estimate column from the df 
+        estimates = df['Estimate']       
+        # get the absolute value of the estimates
+        abs_estimates = estimates.abs()
+        # get the mean of the absolute values
+        mean_abs_estimates = abs_estimates.mean()
+        # get the standard deviation of the absolute values
+        std_abs_estimates = abs_estimates.std()
+        return {'mean_abs_estimates': mean_abs_estimates, 'std_abs_estimates': std_abs_estimates}
+        
+    def edges_to_lavaan(self, edges, exclude_edges = ['---']):
+        """
+        Convert edges to a lavaan string
+        """
+        lavaan_model = ""
+        for edge in edges:
+            nodeA = edge.split(' ')[0]
+            nodeB = edge.split(' ')[2]
+            edge_type = edge.split(' ')[1]
+            if edge_type in exclude_edges:
+                continue
+            lavaan_model += f"{nodeA} ~ {nodeB}\n"
+        return lavaan_model
+    
+    def run_semopy(self, lavaan_model, data):  
+        
+        """
+        run sem using semopy package
+        
+        lavaan_model - string with lavaan model
+        data - pandas df with data
+        """
+        
+        # create a sem model   
+        model = semopy.Model(lavaan_model)
+
+        ## TODO - check if there is a usable model,
+        ## for proj_dyscross2/config_v2.yaml - no direct edges!
+        ## TODO - also delete output files before writing to them so that
+        ## we don't have hold overs from prior runs.
+        opt_res = model.fit(data)
+        estimates = model.inspect()
+        stats = semopy.calc_stats(model)
+
+        return ({'opt_res': opt_res, 'estimates': estimates, 'stats': stats})
+        
+            
 if __name__ == "__main__":
     
     # provide a description of the program with format control
     description = textwrap.dedent('''\
-    A description of the program goes here.
+    Program to run a Tetrad search using the py-tetrad package.
     
-    Account information is read from a .env file which contains the 
-    APITOKEN, DATACENTER and DIRECTORYID.
-    
+
     Here are some examples of using the command. Text following the $ is
     the command that is entered at the command line in a terminal window.
     
