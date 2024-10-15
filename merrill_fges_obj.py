@@ -96,6 +96,10 @@ class MerrillFGES:
                 
                 # load the data
                 x = self.search.load_df(resampled_df)
+                
+                # run the model
+
+                
 
                 # setEdges, setNodes, setPairs = self.extract_edges(soutput)
                 if proportion==1.0:
