@@ -74,7 +74,7 @@ class TetradWrap:
             pass
 
 
-        # add method to the class
+        # add method to the class for loading data
         setattr(ts.TetradSearch,'load_df',self.load_df)
         
         pass
@@ -82,6 +82,7 @@ class TetradWrap:
     # create a new method to load df
     def load_df(self,df):
         self.data = tr.pandas_data_to_tetrad(df)
+        return self.data
 
     def search_init(self,df=None):
         """

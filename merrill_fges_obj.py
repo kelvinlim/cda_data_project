@@ -42,7 +42,7 @@ class MerrillFGES:
         self.tetrad_wrap.jvm_initialize()
         # result = self.tetrad_wrap.test_search()
     
-        self.search = self.tetrad_wrap.search_init()
+        # self.search = self.tetrad_wrap.search_init()
     
         pass
     
@@ -55,10 +55,17 @@ class MerrillFGES:
         
         return dice
 
-
-    def run_proportions(self,df, subj, verbose=False):
-
-            
+    def run_fges_model(self, df, verbose=1):
+        """
+        Run the FGES model
+        """
+        
+        # create the search object 
+        self.search = self.tetrad_wrap.search_init(df)
+        
+        # convert the dataframe to a a java dataframe
+        self.tetrad_wrap.load_df(df)
+        
         ## Use a SEM BIC score
         res =self.search.use_sem_bic(penalty_discount=1)
 
@@ -77,7 +84,17 @@ class MerrillFGES:
         self.search.add_to_tier(1, "happy")
         self.search.add_to_tier(1, "energ")
         self.search.add_to_tier(1, "stress")
+        
 
+
+        # run the model
+        x = self.search.run_fges()
+        soutput = self.search.get_string()
+        setEdges, setNodes, setPairs = self.tetrad_wrap.extract_edges(soutput)
+              
+        return {"setEdges": setEdges, "setNodes": setNodes, "setPairs": setPairs}
+
+    def run_proportions(self,df, subj, verbose=False):
 
         # create lists to hold information for creating a df
         caseList = list()
@@ -86,22 +103,37 @@ class MerrillFGES:
         diceCoeffList = list()
         diceCoeffNodeList = list()
         diceCoeffPairList = list()
+        ESMeanList = list()
+        ESStdList = list()
 
         # loop for the proportion of data to sample
 
         for proportion in [1.0,0.9,0.8,0.7,0.6,0.5,0.4]:
             for iteration in range(NUM_ITERATIONS):
+                if self.config['verbose'] > 1: print(f"Subj: {subj} Proportion: {proportion} Iteration: {iteration+1}")
                 # resample the dataframe based on proportion
                 resampled_df = df.sample(frac=proportion)
                 
-                # load the data
-                x = self.search.load_df(resampled_df)
-                
                 # run the model
-
+                fges_results = self.run_fges_model(resampled_df)
                 
-
-                # setEdges, setNodes, setPairs = self.extract_edges(soutput)
+                # run the sem
+                lavaan_model = self.tetrad_wrap.edges_to_lavaan(fges_results.get('setEdges'))
+        
+                # run semopy
+                sem_results = self.tetrad_wrap.run_semopy(lavaan_model, resampled_df)
+        
+                # get the estmates
+                estimates_sem = sem_results['estimates']
+                # summary of the estimates
+                estimates = self.summarize_estimates(estimates_sem)
+                        
+                setEdges = fges_results['setEdges']
+                setNodes = fges_results['setNodes']
+                setPairs = fges_results['setPairs']
+                ESMean = estimates['mean_abs_estimates'],
+                ESStd = estimates['std_abs_estimates']
+                
                 if proportion==1.0:
                     fullEdges = setEdges.copy()  # full edges from 100%
                     fullNodes = setNodes.copy()
@@ -111,7 +143,7 @@ class MerrillFGES:
                 diceCoeff = self.dice_coefficient(fullEdges,setEdges)
                 diceCoeffNode = self.dice_coefficient(fullNodes,setNodes)
                 diceCoeffPair = self.dice_coefficient(fullPairs,setPairs)
-                if verbose: print(f"Proportion: {proportion} Iteration: {iteration+1} diceCoeff: {diceCoeff}")
+                if verbose > 0 : print(f"Proportion: {proportion} Iteration: {iteration+1} diceCoeff: {diceCoeff}")
                 
                 # load into lists
                 caseList.append(subj)
@@ -120,6 +152,9 @@ class MerrillFGES:
                 diceCoeffList.append(diceCoeff)
                 diceCoeffNodeList.append(diceCoeffNode)
                 diceCoeffPairList.append(diceCoeffPair)
+                ESMeanList.append(ESMean)
+                ESStdList.append(ESStd)
+                
                 pass
             pass
 
@@ -129,7 +164,10 @@ class MerrillFGES:
                                     "iteration": iterationList,
                                     "diceCoeff": diceCoeffList,
                                     "diceCoeffNodes": diceCoeffNodeList,
-                                    "diceCoeffPairs": diceCoeffPairList}
+                                    "diceCoeffPairs": diceCoeffPairList,
+                                    "ESMean": ESMeanList,
+                                    "ESStd": ESStdList,
+                                    }
                                 )
 
         return summaryDf
@@ -155,7 +193,22 @@ class MerrillFGES:
         plt.savefig('pairs.png', format='png', dpi=300, bbox_inches='tight')
         plt.show()
 
-    def work_1(self):
+    def summarize_estimates(self, df):
+        """
+        Summarize the estimates
+        """
+        # get the Estimate column from the df 
+        estimates = df['Estimate']       
+        # get the absolute value of the estimates
+        abs_estimates = estimates.abs()
+        # get the mean of the absolute values
+        mean_abs_estimates = abs_estimates.mean()
+        # get the standard deviation of the absolute values
+        std_abs_estimates = abs_estimates.std()
+        return {'mean_abs_estimates': mean_abs_estimates, 'std_abs_estimates': std_abs_estimates}
+     
+
+    def compute(self):
         summaryDf = None
 
         for file in ["data/sub_1008.csv","data/sub_1019.csv","data/sub_1033.csv"]:
@@ -188,21 +241,21 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=description, formatter_class=argparse.RawTextHelpFormatter)
 
-    parser.add_argument("--env", type = str,
-                     help="name of env file in the current directory, default .env",
-                      default=".env") 
+    # parser.add_argument("--env", type = str,
+    #                  help="name of env file in the current directory, default .env",
+    #                   default=".env") 
 
-    parser.add_argument("--config", type = str,
-                     help="name of yaml config file in the current directory, default config.yaml",
-                      default="config.yaml") 
+    # parser.add_argument("--config", type = str,
+    #                  help="name of yaml config file in the current directory, default config.yaml",
+    #                   default="config.yaml") 
         
     parser.add_argument("--cmd", type = str,
-                    help="cmd - [list, summarize], default list",
-                    default = 'list')
+                    help="cmd - [compute, plot], default compute",
+                    default = 'compute')
 
-    parser.add_argument("--format", type = str,
-                    help="format to use, default json",
-                    default = 'json')
+    # parser.add_argument("--format", type = str,
+    #                 help="format to use, default json",
+    #                 default = 'json')
     
     parser.add_argument("-H", "--history", action="store_true", help="Show program history")
      
@@ -233,5 +286,17 @@ if __name__ == "__main__":
     
     # tetradSearch = obj.search_init()
     # create the MerrillFGES object
-    m = MerrillFGES()
-    summaryDf = m.work_1()
+    m = MerrillFGES(    cmd=args.cmd, 
+                        verbose=args.verbose, 
+        )
+    
+    if args.cmd == 'compute':
+        summaryDf = m.compute()
+        # save to file
+        with open('resampled_models.csv', 'w') as f:
+            summaryDf.to_csv(f, index=False)
+    elif args.cmd == 'plot':
+        # read in the file
+        summaryDf = pd.read_csv('resampled_models.csv')
+        m.create_plots(summaryDf)
+        
