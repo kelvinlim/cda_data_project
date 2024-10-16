@@ -19,11 +19,12 @@ from run_tetrad import TetradWrap
 
 NUM_ITERATIONS = 100
 
-__version_info__ = ('0', '1', '0')
+__version_info__ = ('0', '1', '1')
 __version__ = '.'.join(__version_info__)
 
 version_history = \
 """
+0.1.1 - operational version with fges and sem
 0.1.0 - initial version  
 """
 
@@ -201,14 +202,38 @@ class MerrillFGES:
         plt.title(f'Violin Plots at Different Resampling  Proportions for ESMean')
         plt.savefig('esmean.png', format='png', dpi=300, bbox_inches='tight')
         plt.show()
-        
+
+        # ES mean by case
+        custom_palette = {
+            1008: '#1f77b4',  # Blue
+            1019: '#ff7f0e',  # Orange
+            1033: '#2ca02c',  # Green
+        }
+        plt.figure(figsize=(10, 6))
+        # sns.violinplot(x='proportion', y='ESMean', hue='case', data=summaryDf,
+        #                palette=custom_palette, split=False)
+        sns.boxplot(x='proportion', y='ESMean', hue='case', data=summaryDf,
+                       palette=custom_palette)
+        plt.title(f'Violin Plots at Different Resampling  Proportions for ESMean')
+        plt.savefig('esmean_cases.png', format='png', dpi=300, bbox_inches='tight')
+        plt.show()
+                
         # ES std
         plt.figure(figsize=(10, 6))
         sns.violinplot(x='proportion', y='ESStd', data=summaryDf)
         plt.title(f'Violin Plots at Different Resampling  Proportions for ESStd')
         plt.savefig('esstd.png', format='png', dpi=300, bbox_inches='tight')
         plt.show()
-                
+
+        # ES std by case
+        plt.figure(figsize=(10, 6))
+        #sns.violinplot(x='proportion', y='ESStd', data=summaryDf)
+        sns.boxplot(x='proportion', y='ESStd', hue='case', data=summaryDf,
+                    palette=custom_palette)
+        plt.title(f'Violin Plots at Different Resampling  Proportions for ESStd')
+        plt.savefig('esstd_cases.png', format='png', dpi=300, bbox_inches='tight')
+        plt.show()
+                        
     def summarize_estimates(self, df):
         """
         Summarize the estimates
@@ -249,8 +274,21 @@ if __name__ == "__main__":
     
     # provide a description of the program with format control
     description = textwrap.dedent('''\
-    A description of the program goes here.
     
+    Program for performing analysis for capstone project on 
+    EMA.  This is examining the effect of resampling on the 
+    generated models.  The program will resample the EMA data
+    from the Merrill dataset that was reported in the
+    Stevenson et al. paper.  The program will then run the fges
+    algorithm, followed by SEM on the resampled data and compare the results with
+    the non resempled data.  The program will output the results 
+    as a csv file and also create plots of the results. 
+    
+    $ python merrill_fges_obj.py --cmd compute
+    Perform the computations.  
+    
+    $ python merrill_fges_obj.py --cmd plot
+    Create the plots.
 
     ''')
     
@@ -266,8 +304,8 @@ if __name__ == "__main__":
     #                   default="config.yaml") 
         
     parser.add_argument("--cmd", type = str,
-                    help="cmd - [compute, plot], default compute",
-                    default = 'compute')
+                    help="cmd - [compute, plot], default plot",
+                    default = 'plot')
 
     # parser.add_argument("--format", type = str,
     #                 help="format to use, default json",
