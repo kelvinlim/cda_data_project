@@ -14,17 +14,18 @@ import matplotlib.pyplot as plt
 import pandas as pd
 # import tools.TetradSearch as ts
 # import tools.translate as tr
+import numpy as np
+import cvxpy as cp
 
 from run_tetrad import TetradWrap
 
 NUM_ITERATIONS = 100
 
-__version_info__ = ('0', '1', '1')
+__version_info__ = ('0', '1', '0')
 __version__ = '.'.join(__version_info__)
 
 version_history = \
 """
-0.1.1 - operational version with fges and sem
 0.1.0 - initial version  
 """
 
@@ -175,6 +176,73 @@ class MerrillFGES:
 
         return summaryDf
     
+    def randomly_select_indices(self, df, percentage):
+        """
+        Randomly select a percentage of cells from the DataFrame and return their indices and values.
+
+        Parameters:
+        df (pd.DataFrame): The DataFrame to select from.
+        percentage (float): The percentage of cells to select.
+
+        Returns:
+        tuple: A tuple containing the selected indices, the corresponding values as a list, and a DataFrame with non-selected cells set to NA.
+        """
+        # Calculate the total number of cells
+        total_cells = df.size
+        
+        # Calculate the number of cells to select
+        num_samples = int(total_cells * percentage / 100)
+        
+        # Randomly select cell indices
+        selected_indices = np.random.choice(total_cells, num_samples, replace=False)
+        
+        # Convert flat indices to row, col indices
+        row_indices, col_indices = np.unravel_index(selected_indices, df.shape)
+        
+        # Get the values corresponding to the selected indices
+        selected_values = [df.iat[row, col] for row, col in zip(row_indices, col_indices)]
+        
+        # Create a copy of the DataFrame and set non-selected cells to NA
+        df_with_na = df.copy()
+        mask = np.ones(df.shape, dtype=bool)
+        mask[row_indices, col_indices] = False
+        df_with_na[mask] = np.nan
+        
+        return list(zip(row_indices, col_indices)), selected_values, df_with_na
+
+
+    def run_convex_norm(self, df, selected_indices, selected_values, df_with_na):
+        """
+        Calculate the norm of the sparse matrix given in df
+        where the NA values represent the missing data.
+
+        Args:
+            df (_type_): _description_
+        """
+        
+        # get the dimensions of the df
+        nrows = df.shape[0]
+        ncols = df.shape[1]
+        
+
+        known_value_indicies_list = []
+        known_values = []
+        
+        # create the cvxpy variable X using cp.Variable with nrow and ncol
+        X = cp.Variable((nrows, ncols))
+
+        # define the constraints which are the values of X at the known_value_indicies
+        constraints = [X[selected_indices] == selected_values]
+
+        # create the objective function using cp.norm(X, 'nuc')
+        objective_fn = cp.norm(X, 'nuc')
+
+        # define the problem using cp.Problem
+        problem = cp.Problem(cp.Minimize(objective_fn), constraints)
+        problem.solve()
+        
+        return problem, X
+        
     def create_plots(self, summaryDf):
 
         # create the plots
@@ -202,38 +270,14 @@ class MerrillFGES:
         plt.title(f'Violin Plots at Different Resampling  Proportions for ESMean')
         plt.savefig('esmean.png', format='png', dpi=300, bbox_inches='tight')
         plt.show()
-
-        # ES mean by case
-        custom_palette = {
-            1008: '#1f77b4',  # Blue
-            1019: '#ff7f0e',  # Orange
-            1033: '#2ca02c',  # Green
-        }
-        plt.figure(figsize=(10, 6))
-        # sns.violinplot(x='proportion', y='ESMean', hue='case', data=summaryDf,
-        #                palette=custom_palette, split=False)
-        sns.boxplot(x='proportion', y='ESMean', hue='case', data=summaryDf,
-                       palette=custom_palette)
-        plt.title(f'Violin Plots at Different Resampling  Proportions for ESMean')
-        plt.savefig('esmean_cases.png', format='png', dpi=300, bbox_inches='tight')
-        plt.show()
-                
+        
         # ES std
         plt.figure(figsize=(10, 6))
         sns.violinplot(x='proportion', y='ESStd', data=summaryDf)
         plt.title(f'Violin Plots at Different Resampling  Proportions for ESStd')
         plt.savefig('esstd.png', format='png', dpi=300, bbox_inches='tight')
         plt.show()
-
-        # ES std by case
-        plt.figure(figsize=(10, 6))
-        #sns.violinplot(x='proportion', y='ESStd', data=summaryDf)
-        sns.boxplot(x='proportion', y='ESStd', hue='case', data=summaryDf,
-                    palette=custom_palette)
-        plt.title(f'Violin Plots at Different Resampling  Proportions for ESStd')
-        plt.savefig('esstd_cases.png', format='png', dpi=300, bbox_inches='tight')
-        plt.show()
-                        
+                
     def summarize_estimates(self, df):
         """
         Summarize the estimates
@@ -274,21 +318,8 @@ if __name__ == "__main__":
     
     # provide a description of the program with format control
     description = textwrap.dedent('''\
+    A description of the program goes here.
     
-    Program for performing analysis for capstone project on 
-    EMA.  This is examining the effect of resampling on the 
-    generated models.  The program will resample the EMA data
-    from the Merrill dataset that was reported in the
-    Stevenson et al. paper.  The program will then run the fges
-    algorithm, followed by SEM on the resampled data and compare the results with
-    the non resempled data.  The program will output the results 
-    as a csv file and also create plots of the results. 
-    
-    $ python merrill_fges_obj.py --cmd compute
-    Perform the computations.  
-    
-    $ python merrill_fges_obj.py --cmd plot
-    Create the plots.
 
     ''')
     
@@ -304,8 +335,8 @@ if __name__ == "__main__":
     #                   default="config.yaml") 
         
     parser.add_argument("--cmd", type = str,
-                    help="cmd - [compute, plot], default plot",
-                    default = 'plot')
+                    help="cmd - [compute, plot], default compute",
+                    default = 'compute')
 
     # parser.add_argument("--format", type = str,
     #                 help="format to use, default json",
@@ -353,4 +384,11 @@ if __name__ == "__main__":
         # read in the file
         summaryDf = pd.read_csv('resampled_models.csv')
         m.create_plots(summaryDf)
-        
+    elif args.cmd == 'convexnorm':
+        data = {'A': [1, 2, 3, 4, 5], 'B': [6, 7, 8, 9, 10], 'C': [11, 12, 13, 14, 15]}
+        df = pd.DataFrame(data)
+        # Set the percentage of data to select
+        percentage = 80
+        # Get the randomly selected indices and their values
+        indices, values, df = m.randomly_select_indices(df, percentage)
+        print(df)
