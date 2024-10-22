@@ -176,39 +176,35 @@ class MerrillFGES:
 
         return summaryDf
     
-    def randomly_select_indices(self, df, percentage):
+    def randomly_select_indices(self, df, proportion):
         """
-        Randomly select a percentage of cells from the DataFrame and return their indices and values.
+        Randomly select a proportion of cells from the DataFrame and return their indices and values.
 
         Parameters:
         df (pd.DataFrame): The DataFrame to select from.
-        percentage (float): The percentage of cells to select.
+        proportion (float): The proportion of cells to select.
 
         Returns:
         tuple: A tuple containing the selected indices, the corresponding values as a list, and a DataFrame with non-selected cells set to NA.
         """
-        # Calculate the total number of cells
-        total_cells = df.size
-        
-        # Calculate the number of cells to select
-        num_samples = int(total_cells * percentage / 100)
-        
-        # Randomly select cell indices
-        selected_indices = np.random.choice(total_cells, num_samples, replace=False)
-        
-        # Convert flat indices to row, col indices
-        row_indices, col_indices = np.unravel_index(selected_indices, df.shape)
-        
-        # Get the values corresponding to the selected indices
-        selected_values = [df.iat[row, col] for row, col in zip(row_indices, col_indices)]
-        
-        # Create a copy of the DataFrame and set non-selected cells to NA
+        # Get the dimensions of the DataFrame
+        rows, columns = df.shape
+        # create a mask
+        Amask = np.random.binomial(1, proportion,(rows,columns))
+
+        # Get the indices of the selected cells
+        selected_indices = np.where(Amask == 1)  # returns a tuple of arrays of row and column indices
+
+        # Get the values corresponding to Amask
+        selected_values = df[Amask]      
+          
+
+        # Create a new DataFrame and set non-selected cells to nan using the mask
         df_with_na = df.copy()
-        mask = np.ones(df.shape, dtype=bool)
-        mask[row_indices, col_indices] = False
-        df_with_na[mask] = np.nan
+        df_with_na = df_with_na.mask(Amask == 0, np.nan)
         
-        return list(zip(row_indices, col_indices)), selected_values, df_with_na
+
+        return list(selected_indices[0], selected_indices[1]), selected_values, df_with_na
 
 
     def run_convex_norm(self, df, selected_indices, selected_values, df_with_na):
