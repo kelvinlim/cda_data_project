@@ -266,7 +266,14 @@ class MerrillFGES:
         plt.title(f'Violin Plots at Different Resampling  Proportions for ESMean')
         plt.savefig('esmean.png', format='png', dpi=300, bbox_inches='tight')
         plt.show()
-        
+
+        # ES mean box
+        plt.figure(figsize=(10, 6))
+        sns.boxplot(x='proportion', y='ESMean', hue='case', data=summaryDf)
+        plt.title(f'Violin Plots at Different Resampling  Proportions for ESMean')
+        plt.savefig('esmean_box.png', format='png', dpi=300, bbox_inches='tight')
+        plt.show()
+                
         # ES std
         plt.figure(figsize=(10, 6))
         sns.violinplot(x='proportion', y='ESStd', data=summaryDf)
