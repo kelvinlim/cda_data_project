@@ -17,6 +17,8 @@ import pandas as pd
 import numpy as np
 import cvxpy as cp
 
+from typing import Tuple
+
 from run_tetrad import TetradWrap
 
 NUM_ITERATIONS = 100
@@ -96,6 +98,134 @@ class MerrillFGES:
               
         return {"setEdges": setEdges, "setNodes": setNodes, "setPairs": setPairs}
 
+
+
+    def resample_df(self, df: pd.DataFrame, 
+                    keep_prop: float = 1.0, 
+                    keep_mode: str = 'row',
+                    random_seed: int = 2001) -> Tuple[pd.DataFrame, list]:
+        """
+        Resample the dataframe
+        
+        Parameters:
+        df : pd.DataFrame
+            The dataframe to resample
+        keep_prop : float
+            The proportion of the data to keep
+        keep_mode : str
+            The mode to keep the data. Options are 'row' or 'any'
+        random_seed : int
+            The random seed to use for resampling, default is 2001
+            Saved in object for future operations until reset
+            
+        Returns:
+        pd.DataFrame
+            The resampled DataFrame
+        list of int
+            The indices of the remaining data    
+            
+        
+        """
+        
+        # get dims
+        nrows, ncols = df.shape
+        
+        # set the random seed if not set
+        if not hasattr(self, 'random_seed'):
+            self.random_seed = random_seed
+            np.random.seed(self.random_seed)
+            
+        if keep_mode == 'row':
+            # randomly select the rows
+            keep_list = np.random.choice(df.index, int(nrows*keep_prop), replace=False)
+            keep_list.sort()  # sort
+
+            # keep the rows in keep_list but set the rows not in keep_list to nan
+            df_resampled = df.copy()
+            df_resampled.loc[~df_resampled.index.isin(keep_list)] = np.nan
+        
+        elif keep_mode == 'any':
+            # create all the indices
+            all_indicies = range(nrows*ncols)
+
+            # randomly select any cell in the dataframe based on keep_prop
+            keep_list = np.random.choice(all_indicies, int(len(all_indicies)*keep_prop), replace=False)
+            keep_list.sort()  # sort
+            
+            # find the complement of the keep_list
+            indices_to_set_nan = list(set(all_indicies) - set(keep_list))
+            indices_to_set_nan.sort()
+            
+            rows, cols = self.convert_index_to_row_col(indices_to_set_nan, ncols)
+            
+            # set the non-selected indices to NaN
+            df_resampled = df.copy()
+            for i in range(len(rows)):
+                df_resampled.iloc[rows[i],cols[i]] = np.nan
+            
+            keep_list = (rows, cols)
+            
+        return (df_resampled, keep_list)
+    
+    def convert_index_to_row_col(self, index: list, ncols: int) -> Tuple[list, list]:
+        """
+        Convert the index  list to row and column
+
+        Args:
+            index (_type_): _description_
+            nrows (_type_): _description_
+            ncols (_type_): _description_
+        """
+        
+        rows = []
+        cols = []
+        for i in index:
+            r = i // ncols
+            c = i % ncols
+            rows.append(r)
+            cols.append(c)
+        
+        return rows, cols
+    
+    def impute_df_mode(self, df, df_nan, mode='median'):
+        """
+        Impute the data using the mode provided
+        
+       
+        """
+        df_new = df_nan.copy()
+        
+        if mode == 'median':
+            # iterate through each column
+            for col in df.columns:
+                df_new[col].fillna({col: df[col].median()}, inplace=True)
+        elif mode == 'mean':
+            # iterate through each column
+            for col in df.columns:
+                df_new[col].fillna({col: df[col].mean()}, inplace=True)          
+        
+        return df_new
+    
+    def test_impute(self):
+        
+        summaryDf = None
+        
+        for file in ["data/sub_1008.csv","data/sub_1019.csv","data/sub_1033.csv"]:
+
+            # read in the data
+            df = pd.read_csv('data/sub_1008.csv')
+            df_row, rows = self.resample_df(df, keep_prop=0.8, keep_mode='row')
+            df_any, rows_cols = self.resample_df(df, keep_prop=0.8, keep_mode='any')
+            
+            # test the impute with mode
+            df_row_median = self.impute_df_mode(df, df_row, mode='median')
+            df_any_median = self.impute_df_mode(df, df_any, mode='median')
+            df_row_mean = self.impute_df_mode(df, df_row, mode='mean')
+            df_any_mean = self.impute_df_mode(df, df_any, mode='mean')
+
+            break
+        pass
+        
     def run_proportions(self,df, subj, verbose=False):
 
         # create lists to hold information for creating a df
@@ -162,8 +292,113 @@ class MerrillFGES:
                 pass
             pass
 
+
         # create dataframe
         summaryDf = pd.DataFrame(  {"case": caseList,
+                                    "proportion": proportionList,
+                                    "iteration": iterationList,
+                                    "diceCoeff": diceCoeffList,
+                                    "diceCoeffNodes": diceCoeffNodeList,
+                                    "diceCoeffPairs": diceCoeffPairList,
+                                    "ESMean": ESMeanList,
+                                    "ESStd": ESStdList,
+                                    }
+                                )
+
+        return summaryDf
+
+    def run_impute_proportions(self,df, subj, impute = 'median', keep_mode='row', verbose=False,
+                               iterations = NUM_ITERATIONS) -> pd.DataFrame:
+        """
+        Run an impute method on the data and then run the model
+
+        Args:
+            df (pd.DataFrame): the data frame to run the model on
+            subj (str): the subject name
+            impute (str, optional): the impute method to use. Defaults to 'median'.
+            keep_mode (str, optional): the keep mode. Defaults to 'row'.
+            verbose (bool, optional): verbose level. Defaults to False.
+
+        Returns:
+            pd.DataFrame: the summary dataframe
+        """
+        # create lists to hold information for creating a df
+        caseList = list()
+        imputeList = list()
+        keepModeList = list()
+        proportionList = list()
+        iterationList = list()
+        diceCoeffList = list()
+        diceCoeffNodeList = list()
+        diceCoeffPairList = list()
+        ESMeanList = list()
+        ESStdList = list()
+
+        # loop for the proportion of data to sample
+
+        for proportion in [1.0,0.9,0.8,0.7,0.6,0.5,0.4]:
+            for iteration in range(iterations):
+                if self.config['verbose'] > 1: 
+                    print(f"Subj: {subj} Proportion: {proportion} Iteration: {iteration+1} Imputation: {impute} Keep Mode: {keep_mode}")
+                # resample the dataframe based on proportion
+                df_temp, rows = self.resample_df(df, keep_prop=proportion, keep_mode=keep_mode)
+                
+                # impute the data
+                df_imputed = self.impute_df_mode(df, df_temp, mode=impute)
+                
+                # run the model
+                fges_results = self.run_fges_model(df_imputed)
+                
+                # run the sem
+                lavaan_model = self.tetrad_wrap.edges_to_lavaan(fges_results.get('setEdges'))
+        
+                # run semopy
+                sem_results = self.tetrad_wrap.run_semopy(lavaan_model, df_imputed)
+        
+                # get the estmates
+                estimates_sem = sem_results['estimates']
+                # summary of the estimates
+                estimates = self.summarize_estimates(estimates_sem)
+                        
+                setEdges = fges_results['setEdges']
+                setNodes = fges_results['setNodes']
+                setPairs = fges_results['setPairs']
+                ESMean = estimates['mean_abs_estimates'], # becomes a tuple! bug?
+                if type(ESMean) == tuple:
+                    ESMean = ESMean[0]
+                ESStd = estimates['std_abs_estimates']
+                
+                if proportion==1.0:
+                    fullEdges = setEdges.copy()  # full edges from 100%
+                    fullNodes = setNodes.copy()
+                    fullPairs = setPairs.copy()
+                    
+                # calculate the dice coefficient
+                diceCoeff = self.dice_coefficient(fullEdges,setEdges)
+                diceCoeffNode = self.dice_coefficient(fullNodes,setNodes)
+                diceCoeffPair = self.dice_coefficient(fullPairs,setPairs)
+                if verbose > 0 : print(f"Proportion: {proportion} Iteration: {iteration+1} diceCoeff: {diceCoeff}")
+                
+                # load into lists
+                caseList.append(subj)
+                imputeList.append(impute)
+                keepModeList.append(keep_mode)                
+                proportionList.append(proportion)
+                iterationList.append(iteration)
+                diceCoeffList.append(diceCoeff)
+                diceCoeffNodeList.append(diceCoeffNode)
+                diceCoeffPairList.append(diceCoeffPair)
+                ESMeanList.append(ESMean)
+                ESStdList.append(ESStd)
+                
+                pass
+            pass
+
+
+        # create dataframe
+        summaryDf = pd.DataFrame(  {"case": caseList,
+                                    "imputeMethod": imputeList,
+                                    "keepMode": keepModeList,
                                     "proportion": proportionList,
                                     "iteration": iterationList,
                                     "diceCoeff": diceCoeffList,
@@ -313,7 +548,34 @@ class MerrillFGES:
                 pass
 
         return summaryDf
-    
+
+    def impute(self, iterations=NUM_ITERATIONS):
+        summaryDf = None
+
+        for file in ["data/sub_1008.csv","data/sub_1019.csv","data/sub_1033.csv"]:
+            df = pd.read_csv(file, sep=",")
+            df = df.astype({col: "float64" for col in df.columns})
+            subj = Path(file).stem.split('_')[1]
+            df_result = self.run_impute_proportions(df, subj, iterations=iterations)
+
+            # concatenate the dataframes
+            if summaryDf is None:
+                summaryDf = df_result.copy()
+            else:
+                summaryDf = pd.concat([summaryDf,df_result],ignore_index=True)
+                pass
+
+        return summaryDf
+        
+    def impute_data_norm(self, df, verbose=1):
+        """
+        Impute the data using convex norm
+        """
+        
+        # read in the data 
+        pass
+        
+
 
 
 
@@ -383,6 +645,11 @@ if __name__ == "__main__":
         # save to file
         with open('resampled_models.csv', 'w') as f:
             summaryDf.to_csv(f, index=False)
+    elif args.cmd == 'impute':
+        summaryDf = m.impute(iterations=10)
+        # save to file
+        with open('imputed_models.csv', 'w') as f:
+            summaryDf.to_csv(f, index=False)
     elif args.cmd == 'plot':
         # read in the file
         summaryDf = pd.read_csv('resampled_models.csv')
@@ -395,3 +662,5 @@ if __name__ == "__main__":
         # Get the randomly selected indices and their values
         indices, values, df = m.randomly_select_indices(df, percentage)
         print(df)
+    elif args.cmd == 'test_impute':
+        m.test_impute()

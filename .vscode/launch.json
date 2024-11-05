@@ -40,8 +40,33 @@
                 "--cmd",
                 "plot"
             ]
+        },
+
+        {
+            "name": "merrill_fges test_impute",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "merrill_fges_obj.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--verbose",
+                "3",
+                "--cmd",
+                "test_impute"
+            ]
+        },
+        {
+            "name": "merrill_fges impute",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "merrill_fges_obj.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--verbose",
+                "3",
+                "--cmd",
+                "impute"
+            ]
         }
-
-
     ]
 }
