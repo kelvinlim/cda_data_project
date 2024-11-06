@@ -190,24 +190,47 @@ class MerrillFGES:
         
         return rows, cols
     
-    def impute_df_mode(self, df, df_nan, mode='median'):
+    def impute_df(self, df: pd.DataFrame, df_nan: pd.DataFrame, mode: int ='median') \
+                    -> Tuple[pd.DataFrame, float]:
         """
         Impute the data using the mode provided
         
+        Parameters:
+        df : pd.DataFrame
+            The original dataframe
+        df_nan : pd.DataFrame with NaN values that need to be imputed
+        mode : str
+            The mode to use for imputation. Options are 'median' or 'mean', 'total_variance'
        
+        Returns:   
+        pd.DataFrame
+            The imputed DataFrame
+        float  
+            scalar value for the similarity value
         """
         df_new = df_nan.copy()
         
         if mode == 'median':
             # iterate through each column
-            for col in df.columns:
+            for col in df_nan.columns:
                 df_new[col] = df_new[col].fillna(df[col].median())
         elif mode == 'mean':
             # iterate through each column
-            for col in df.columns:
+            for col in df_nan.columns:
                 df_new[col] = df_new[col].fillna(df[col].mean())
+        elif mode == 'total_variance':
+            df_new, obj_value = self.run_total_variance(df_nan)
+        else:
+            print(f"Error: {mode} not recognized")
+            df_new = None
         
-        return df_new
+        # calculate the similarity value
+        if df_new + df is not None:
+            similarity = self.compare_df(df, df_new)
+        else:
+            similarity = None
+            
+        return (df_new, similarity)
     
     def test_impute(self):
         
@@ -223,10 +246,10 @@ class MerrillFGES:
             df_any, rows_cols = self.resample_df(df, keep_prop=proportion, keep_mode='any')
             
             # test the impute with mode
-            df_row_median = self.impute_df_mode(df, df_row, mode='median')
-            df_any_median = self.impute_df_mode(df, df_any, mode='median')
-            df_row_mean = self.impute_df_mode(df, df_row, mode='mean')
-            df_any_mean = self.impute_df_mode(df, df_any, mode='mean')
+            df_row_median,  = self.impute_df(df, df_row, mode='median')
+            df_any_median = self.impute_df(df, df_any, mode='median')
+            df_row_mean = self.impute_df(df, df_row, mode='mean')
+            df_any_mean = self.impute_df(df, df_any, mode='mean')
 
             # run the impute with total variance algorithm
             df_row_tv, row_tv_value = self.run_total_variance(df_row)
@@ -369,7 +392,7 @@ class MerrillFGES:
                 df_temp, rows = self.resample_df(df, keep_prop=proportion, keep_mode=keep_mode)
                 
                 # impute the data
-                df_imputed = self.impute_df_mode(df, df_temp, mode=impute)
+                df_imputed = self.impute_df(df, df_temp, mode=impute)
                 
                 # run the model
                 fges_results = self.run_fges_model(df_imputed)
