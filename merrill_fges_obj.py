@@ -19,15 +19,18 @@ import cvxpy as cp
 
 from typing import Tuple
 
+from sklearn.metrics.pairwise import cosine_similarity
+
 from run_tetrad import TetradWrap
 
 NUM_ITERATIONS = 100
 
-__version_info__ = ('0', '1', '0')
+__version_info__ = ('0', '1', '1')
 __version__ = '.'.join(__version_info__)
 
 version_history = \
 """
+0.1.1 - added impute methods
 0.1.0 - initial version  
 """
 
@@ -198,24 +201,26 @@ class MerrillFGES:
         if mode == 'median':
             # iterate through each column
             for col in df.columns:
-                df_new[col].fillna({col: df[col].median()}, inplace=True)
+                df_new[col] = df_new[col].fillna(df[col].median())
         elif mode == 'mean':
             # iterate through each column
             for col in df.columns:
-                df_new[col].fillna({col: df[col].mean()}, inplace=True)          
+                df_new[col] = df_new[col].fillna(df[col].mean())
         
         return df_new
     
     def test_impute(self):
         
         summaryDf = None
-        
+
+        proportion = .8
+                
         for file in ["data/sub_1008.csv","data/sub_1019.csv","data/sub_1033.csv"]:
 
             # read in the data
             df = pd.read_csv('data/sub_1008.csv')
-            df_row, rows = self.resample_df(df, keep_prop=0.8, keep_mode='row')
-            df_any, rows_cols = self.resample_df(df, keep_prop=0.8, keep_mode='any')
+            df_row, rows = self.resample_df(df, keep_prop=proportion, keep_mode='row')
+            df_any, rows_cols = self.resample_df(df, keep_prop=proportion, keep_mode='any')
             
             # test the impute with mode
             df_row_median = self.impute_df_mode(df, df_row, mode='median')
@@ -223,9 +228,29 @@ class MerrillFGES:
             df_row_mean = self.impute_df_mode(df, df_row, mode='mean')
             df_any_mean = self.impute_df_mode(df, df_any, mode='mean')
 
+            # run the impute with total variance algorithm
+            df_row_tv, row_tv_value = self.run_total_variance(df_row)
+            df_any_tv, any_tv_value = self.run_total_variance(df_any)
+            
+            # metric using cosine similarity to compare df and df_row_tv
+            df_row_tv_sim = self.compare_df(df, df_row_tv)
+            df_any_tv_sim = self.compare_df(df, df_any_tv)
+            df_row_median_sim = self.compare_df(df, df_row_median)
+            df_any_median_sim = self.compare_df(df, df_any_median)
+            
             break
         pass
-        
+    
+    def compare_df(self, df1, df2):
+        """
+        Compare two dataframes using cosine similarity
+        """
+        cosine_sim = cosine_similarity(df1.values, df2.values)
+        # Average over all pairwise similarities to get a scalar
+        scalar_similarity = np.mean(cosine_sim) 
+
+        return scalar_similarity
+    
     def run_proportions(self,df, subj, verbose=False):
 
         # create lists to hold information for creating a df
@@ -441,6 +466,53 @@ class MerrillFGES:
 
         return list(selected_indices[0], selected_indices[1]), selected_values, df_with_na
 
+
+    def run_total_variance(self, df: pd.DataFrame)-> tuple[pd.DataFrame, float]:
+        """
+        Use the total variance method to fill the
+        sparse matrix given in df
+        where the NA values represent the missing data.
+
+        Args:
+            u_corr: The sparse matrix with missing data represented as NA values.
+
+        Returns:
+            The filled matrix.
+            
+        """
+        rows, cols = df.shape
+        
+        # make a copy of df
+        u_corr = df.copy()
+        # set the NA values to 0
+        u_corr = u_corr.fillna(0)
+        
+        # Create a mask of known values from df where NA values are 0 and known values are 1
+        df_binary = df.notna() 
+        known = df_binary.astype(int)
+        
+        # get max and min values for constraints
+        min_val = u_corr.min().min()
+        max_val = u_corr.max().max()
+        
+        U = cp.Variable(shape=(rows, cols))
+        obj = cp.Minimize(cp.tv(U))
+        # obj = cp.Minimize(cp.norm(U, 'nuc'))
+        constraints = [ cp.multiply(known, U) == cp.multiply(known, u_corr),
+                        U >= min_val,  # Lower bound
+                        U <= max_val   # Upper bound
+                       ]
+        prob = cp.Problem(obj, constraints)
+
+        # Use SCS to solve the problem.
+        prob.solve(verbose=True, solver=cp.SCS)
+        print("optimal objective value: {}".format(obj.value))
+
+        # convert numpy array to DataFrame
+        df_new = pd.DataFrame(U.value)
+        # add column names from original df
+        df_new.columns = df.columns        
+        return (df_new, obj.value)
 
     def run_convex_norm(self, df, selected_indices, selected_values, df_with_na):
         """
