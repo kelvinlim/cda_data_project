@@ -67,6 +67,19 @@
                 "--cmd",
                 "impute"
             ]
+        },
+        {
+            "name": "merrill_fges plotimpute",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "merrill_fges_obj.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--verbose",
+                "3",
+                "--cmd",
+                "plotimpute"
+            ]
         }
     ]
 }
