@@ -625,6 +625,10 @@ class MerrillFGES:
         
         for keep_mode in ['row', 'any']:
             for imputeMethod in ['median', 'mean', 'total_variance']:
+                
+                if self.config['verbose'] > 0: print(f"Creating plots for {imputeMethod} and {keep_mode}")
+                summaryDf = df[(df['keepMode'] == keep_mode) & (df['imputeMethod'] == imputeMethod)]
+
                 # create the plots
                 plt.figure(figsize=(10, 6))
                 sns.violinplot(x='proportion', y='diceCoeff', data=summaryDf)
@@ -641,7 +645,13 @@ class MerrillFGES:
                 plt.savefig(png_file, format='png', dpi=300, bbox_inches='tight')
                 plt.show()
 
-
+                # cosine similarity
+                plt.figure(figsize=(10, 6))
+                sns.violinplot(x='proportion', y='cosineSimilarity', data=summaryDf)
+                plt.title(f'Violin Plots at Different Resampling  Proportions for cosineSimilarity using {imputeMethod} and {keep_mode}')
+                png_file = f'cossim_{imputeMethod}_{keep_mode}.png'
+                plt.savefig(png_file, format='png', dpi=300, bbox_inches='tight')
+                plt.show()
 
                 
     def summarize_estimates(self, df):
@@ -684,14 +694,22 @@ class MerrillFGES:
             df = pd.read_csv(file, sep=",")
             df = df.astype({col: "float64" for col in df.columns})
             subj = Path(file).stem.split('_')[1]
-            df_result = self.run_impute_proportions(df, subj, iterations=iterations)
+            
+            for impute in ['median', 'mean', 'total_variance']:
+                for keep_mode in ['row', 'any']:
+                    if self.config['verbose'] > 0: print(f"Imputing {impute} with {keep_mode}")
+                    df_result = self.run_impute_proportions(df, subj,
+                                                            impute = impute,
+                                                            keep_mode=keep_mode,
+                                                            verbose = True,
+                                                            iterations=iterations)
 
-            # concatenate the dataframes
-            if summaryDf is None:
-                summaryDf = df_result.copy()
-            else:
-                summaryDf = pd.concat([summaryDf,df_result],ignore_index=True)
-                pass
+                    # concatenate the dataframes
+                    if summaryDf is None:
+                        summaryDf = df_result.copy()
+                    else:
+                        summaryDf = pd.concat([summaryDf,df_result],ignore_index=True)
+                        pass
 
         return summaryDf
         
