@@ -106,7 +106,7 @@ class MerrillFGES:
     def resample_df(self, df: pd.DataFrame, 
                     keep_prop: float = 1.0, 
                     keep_mode: str = 'row',
-                    random_seed: int = 2001) -> Tuple[pd.DataFrame, list]:
+                    random_seed: int = 2025) -> Tuple[pd.DataFrame, list]:
         """
         Resample the dataframe
         
@@ -220,12 +220,14 @@ class MerrillFGES:
                 df_new[col] = df_new[col].fillna(df[col].mean())
         elif mode == 'total_variance':
             df_new, obj_value = self.run_total_variance(df_nan)
+        elif mode == 'dropna':
+            df_new = df_nan.dropna()
         else:
             print(f"Error: {mode} not recognized")
             df_new = None
         
         # calculate the similarity value
-        if df_new + df is not None:
+        if df_new.shape == df.shape:  # both same size?
             similarity = self.compare_df(df, df_new)
         else:
             similarity = None
@@ -574,6 +576,7 @@ class MerrillFGES:
         
     def create_plots(self, summaryDf):
 
+        plt.ioff()  # Turn off interactive mode
         # create the plots
         plt.figure(figsize=(10, 6))
         sns.violinplot(x='proportion', y='diceCoeff', data=summaryDf)
@@ -614,7 +617,7 @@ class MerrillFGES:
         plt.savefig('esstd.png', format='png', dpi=300, bbox_inches='tight')
         plt.show()
 
-    def create_plots_impute(self, df):
+    def create_plots_impute(self, df, interactive=False):
 
         """
         Create plots for the imputed data
@@ -623,7 +626,8 @@ class MerrillFGES:
             df (pd.DataFrame): the dataframe with the imputed data
         """
         
-        for keep_mode in ['row', 'any']:
+        
+        for keep_mode in ['row', ]:
             for imputeMethod in ['median', 'mean', 'total_variance']:
                 
                 if self.config['verbose'] > 0: print(f"Creating plots for {imputeMethod} and {keep_mode}")
@@ -631,11 +635,12 @@ class MerrillFGES:
 
                 # create the plots
                 plt.figure(figsize=(10, 6))
-                sns.violinplot(x='proportion', y='diceCoeff', data=summaryDf)
+                sns.boxplot(x='proportion', y='diceCoeff', data=summaryDf)
                 plt.title(f'Violin Plots at Different Resampling  Proportions for edges using {imputeMethod} and {keep_mode}')
                 png_file = f'edges_{imputeMethod}_{keep_mode}.png'
                 plt.savefig(png_file, format='png', dpi=300, bbox_inches='tight')
-                plt.show()
+                if interactive: plt.show()
+                else: plt.close()                
 
                 # ES mean
                 plt.figure(figsize=(10, 6))
@@ -643,7 +648,8 @@ class MerrillFGES:
                 plt.title(f'Violin Plots at Different Resampling  Proportions for ESMean using {imputeMethod} and {keep_mode}')
                 png_file = f'esmean_{imputeMethod}_{keep_mode}.png'
                 plt.savefig(png_file, format='png', dpi=300, bbox_inches='tight')
-                plt.show()
+                if interactive: plt.show()
+                else: plt.close()   
 
                 # cosine similarity
                 plt.figure(figsize=(10, 6))
@@ -651,9 +657,35 @@ class MerrillFGES:
                 plt.title(f'Violin Plots at Different Resampling  Proportions for cosineSimilarity using {imputeMethod} and {keep_mode}')
                 png_file = f'cossim_{imputeMethod}_{keep_mode}.png'
                 plt.savefig(png_file, format='png', dpi=300, bbox_inches='tight')
-                plt.show()
+                if interactive: plt.show()
+                else: plt.close()   
 
+        # plot multiple impute methods on same plot as hue
+        for keep_mode in ['row', ]:
+            for imputeMethod in ['median', 'mean', 'total_variance','dropna']:
                 
+                if self.config['verbose'] > 0: print(f"Creating plots for {keep_mode}")
+                
+                summaryDf = df[(df['keepMode'] == keep_mode) ]
+
+                # create the plots
+                plt.figure(figsize=(10, 6))
+                sns.boxplot(x='proportion', y='diceCoeff', hue='imputeMethod', data=summaryDf)
+                plt.title(f'BoxPlots of edges using Different imputation methods with {keep_mode}')
+                png_file = f'edges_{keep_mode}.png'
+                plt.savefig(png_file, format='png', dpi=300, bbox_inches='tight')
+                if interactive: plt.show()
+                else: plt.close()   
+
+
+                plt.figure(figsize=(10, 6))
+                sns.boxplot(x='proportion', y='ESMean', hue='imputeMethod', data=summaryDf)
+                plt.title(f'BoxPlots of ESMean using Different imputation methods with {keep_mode}')
+                png_file = f'esmean_{keep_mode}.png'
+                plt.savefig(png_file, format='png', dpi=300, bbox_inches='tight')
+                if interactive: plt.show()
+                else: plt.close()  
+                                
     def summarize_estimates(self, df):
         """
         Summarize the estimates
@@ -695,8 +727,8 @@ class MerrillFGES:
             df = df.astype({col: "float64" for col in df.columns})
             subj = Path(file).stem.split('_')[1]
             
-            for impute in ['median', 'mean', 'total_variance']:
-                for keep_mode in ['row', 'any']:
+            for impute in ['dropna','median', 'mean', 'total_variance',]:
+                for keep_mode in ['row']:  # leave out any for now
                     if self.config['verbose'] > 0: print(f"Imputing {impute} with {keep_mode}")
                     df_result = self.run_impute_proportions(df, subj,
                                                             impute = impute,
