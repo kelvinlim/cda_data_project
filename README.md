@@ -21,6 +21,17 @@ Stored in data directory
 3. sub_1033 has 93 rows and  10(direct)/10 edges
 4. sub_1112 has 89 rows and 9(direct)/15 edges 
 
+## support for miceforest
+
+Needed the libgomp library.
+
+```
+# macos
+brew install libomp
+
+# ubuntu
+sudo apt-get install libgomp1
+```
 ## Windows installation
 
 Installed java jdk21
