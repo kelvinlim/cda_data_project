@@ -21,16 +21,20 @@ from typing import Tuple
 
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.impute import KNNImputer
+from sklearn.experimental import enable_iterative_imputer
+from sklearn.impute import IterativeImputer
+import miceforest as mf
 
 from run_tetrad import TetradWrap
 
 NUM_ITERATIONS = 100
 
-__version_info__ = ('0', '1', '1')
+__version_info__ = ('0', '1', '2')
 __version__ = '.'.join(__version_info__)
 
 version_history = \
 """
+0.1.2 - added knn, mice_sklearn, miceforest impute methods
 0.1.1 - added impute methods
 0.1.0 - initial version  
 """
@@ -223,6 +227,8 @@ class MerrillFGES:
             df_new, obj_value = self.run_total_variance(df_nan)
         elif mode == 'knn':
             df_new = self.run_knn_imputer(df_nan)
+        elif mode == 'mice_sklearn':
+            df_new = self.run_mice_sklearn(df_nan)
         elif mode == 'dropna':
             df_new = df_nan.dropna()
         else:
@@ -251,10 +257,10 @@ class MerrillFGES:
             df_any, rows_cols = self.resample_df(df, keep_prop=proportion, keep_mode='any')
             
             # test the impute with mode
-            df_row_median  = self.impute_df(df, df_row, mode='median')
-            df_any_median = self.impute_df(df, df_any, mode='median')
-            df_row_mean = self.impute_df(df, df_row, mode='mean')
-            df_any_mean = self.impute_df(df, df_any, mode='mean')
+            df_row_median, sim = self.impute_df(df, df_row, mode='median')
+            df_any_median, sim = self.impute_df(df, df_any, mode='median')
+            df_row_mean, sim = self.impute_df(df, df_row, mode='mean')
+            df_any_mean, sim = self.impute_df(df, df_any, mode='mean')
 
             # run the impute with total variance algorithm
             df_row_tv, row_tv_value = self.run_total_variance(df_row)
@@ -505,6 +511,55 @@ class MerrillFGES:
 
         return list(selected_indices[0], selected_indices[1]), selected_values, df_with_na
 
+    def run_mice_forest(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Use the MICE imputer from the miceforest library to fill the
+        sparse matrix given in df
+        where the NA values represent the missing data.
+
+        Args:
+            df: The sparse matrix with missing data represented as NA values.
+
+        Returns:
+            The filled matrix.
+        """
+        # Create a MiceImputer object
+        kernel = mf.ImputationKernel(
+        df,
+        datasets=5,  # Number of imputed datasets
+        save_all_iterations=True,
+        random_state=1991
+        )
+
+        # Run the MICE algorithm
+        kernel.mice(iterations=5)  # Number of iterations
+
+        # Get the completed dataset (mean imputation)
+        df_imputed = kernel.complete_data(dataset=0)  # You can select different datasets
+
+        return df_imputed    
+    
+    def run_mice_sklearn(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Use the MICE imputer from the sklearn library to fill the
+        sparse matrix given in df
+        where the NA values represent the missing data.
+
+        Args:
+            df: The sparse matrix with missing data represented as NA values.
+
+        Returns:
+            The filled matrix.
+        """
+        # Create the imputer
+        imputer = IterativeImputer(max_iter=10, random_state=0)
+        # Fill the sparse matrix
+        filled_matrix = imputer.fit_transform(df)
+        # Convert the numpy array to a DataFrame
+        filled_df = pd.DataFrame(filled_matrix)
+        # Add the column names from the original DataFrame
+        filled_df.columns = df.columns
+        return filled_df
 
     def run_knn_imputer(self, df: pd.DataFrame, k: int = 3) -> pd.DataFrame:
         """
@@ -661,8 +716,8 @@ class MerrillFGES:
         """
         
         
-        for keep_mode in ['row', ]:
-            for imputeMethod in ['median', 'mean', 'total_variance','knn']:
+        for keep_mode in ['row' ]:
+            for imputeMethod in ['median', 'mean', 'total_variance','knn','mice_sklearn','dropna']:
                 
                 if self.config['verbose'] > 0: print(f"Creating plots for {imputeMethod} and {keep_mode}")
                 summaryDf = df[(df['keepMode'] == keep_mode) & (df['imputeMethod'] == imputeMethod)]
@@ -761,8 +816,12 @@ class MerrillFGES:
             df = df.astype({col: "float64" for col in df.columns})
             subj = Path(file).stem.split('_')[1]
             
-            for impute in ['dropna','median', 'mean', 'total_variance','knn']:
-                for keep_mode in ['row']:  # leave out any for now
+            for impute in ['dropna','median', 'mean', 'total_variance','knn','mice_sklearn',]:
+                for keep_mode in ['row',]:  # leave out any for now
+                    # error with any 
+                    # self.java = alg.search(self.data, self.params)
+                    # Exception has occurred: java.lang.ArrayIndexOutOfBoundsException
+                    # java.lang.ArrayIndexOutOfBoundsException: Index 0 out of bounds for length 0
                     if self.config['verbose'] > 0: print(f"Imputing {impute} with {keep_mode}")
                     df_result = self.run_impute_proportions(df, subj,
                                                             impute = impute,
