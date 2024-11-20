@@ -29,11 +29,13 @@ from run_tetrad import TetradWrap
 
 NUM_ITERATIONS = 100
 
-__version_info__ = ('0', '1', '3')
+__version_info__ = ('0', '1', '5')
 __version__ = '.'.join(__version_info__)
 
 version_history = \
 """
+0.1.5 - uni and multivariate comparison plots
+0.1.4 - got mice_forest working
 0.1.3 - added plots
 0.1.2 - added knn, mice_sklearn, miceforest impute methods
 0.1.1 - added impute methods
@@ -821,29 +823,172 @@ class MerrillFGES:
 
         # plot multiple impute methods on same plot as hue
         for keep_mode in ['row', ]:
-            for imputeMethod in ['median', 'mean', 'total_variance','dropna']:
+            #for imputeMethod in :
                 
-                if self.config['verbose'] > 0: print(f"Creating plots for {keep_mode}")
-                
-                summaryDf = df[(df['keepMode'] == keep_mode) ]
 
-                # create the plots
-                plt.figure(figsize=(10, 6))
-                sns.boxplot(x='proportion', y='diceCoeff', hue='imputeMethod', data=summaryDf)
-                plt.title(f'BoxPlots of edges using Different imputation methods with {keep_mode}')
-                png_file = f'edges_{keep_mode}.png'
-                plt.savefig(png_file, format='png', dpi=300, bbox_inches='tight')
-                if interactive: plt.show()
-                else: plt.close()   
+            
+            if self.config['verbose'] > 0: print(f"Creating plots for {keep_mode}")
+            
+            summaryDf = df[(df['keepMode'] == keep_mode) ]
+            
+       
+            # create the plots
+            hue_order = ['dropna','median', 'mean', 
+                         #'total_variance','knn',  'mice_forest','mice_sklearn',
+                         ]     
+            plt.figure(figsize=(10, 6))
+            ax = sns.boxplot(x='proportion', y='diceCoeff', 
+                        hue='imputeMethod', 
+                        hue_order=hue_order,
+                        data=summaryDf)
+            
+            
+            # attempt to create separation with box plots for a proportion
+            # # Get the positions of the boxes
+            # positions = ax.get_xticks() 
+
+            # # Shift the positions of boxes after 'mean'
+            # # 'total_variance' is at index 3 and those after should be shifted
+            # # positions[3:] = [pos + gap for pos in positions[3:]] 
+
+            # # # Set the new positions of the boxes
+            # # ax.set_xticks(positions)
+            
+            # # Calculate the desired gap (adjust as needed)
+            # gap = 0.3 
+
+            # # Calculate the number of hue levels
+            # n_hue_levels = len(hue_order)
+
+            # # Calculate the offset for each hue level
+            # offsets = np.linspace(-gap/2, gap/2, n_hue_levels)
+
+            # # Adjust the positions of the boxes for each x-value
+            # for i, x_pos in enumerate(positions):
+            #     new_positions = x_pos + offsets
+            #     # Apply the gap only between 'mean' and 'total_variance'
+            #     new_positions[3] += gap / 2  # Adjust 'total_variance' position
+            #     new_positions[2] -= gap / 2  # Adjust 'mean' position
+
+            #     # Update the positions of the boxes using the correct artist
+            #     for j in range(n_hue_levels):  # Iterate through hue levels
+            #         artist_index = i * n_hue_levels + j  # Calculate the correct artist index
+            #         if artist_index < len(ax.artists):  # Check if the index is valid
+            #             ax.artists[artist_index].set_xdata(new_positions[j]) 
+
+            
+            plt.title(f'BoxPlots of edges using univariate imputation methods with missing {keep_mode}s')
+            png_file = f'edges_univariate_{keep_mode}.png'
+            plt.savefig(png_file, format='png', dpi=300, bbox_inches='tight')
+            if interactive: plt.show()
+            else: plt.close()   
+
+            # create the multivariate plots
+            hue_order = ['dropna',
+                         # 'median', 'mean', 
+                         'total_variance','knn',  'mice_forest','mice_sklearn',
+                         ]     
+            plt.figure(figsize=(10, 6))
+            ax = sns.boxplot(x='proportion', y='diceCoeff', 
+                        hue='imputeMethod', 
+                        hue_order=hue_order,
+                        data=summaryDf)
+            
+            plt.title(f'BoxPlots of edges using multivariate imputation methods with missing {keep_mode}s')
+            png_file = f'edges_multivariate_{keep_mode}.png'
+            plt.savefig(png_file, format='png', dpi=300, bbox_inches='tight')
+            if interactive: plt.show()
+            else: plt.close()   
+
+            # create the combined univariate and multivariate plots
+            hue_order = ['dropna',
+                         'median', 'mean', 
+                         'total_variance','knn',  'mice_forest','mice_sklearn',
+                         ]     
+            plt.figure(figsize=(10, 6))
+            ax = sns.boxplot(x='proportion', y='diceCoeff', 
+                        hue='imputeMethod', 
+                        hue_order=hue_order,
+                        data=summaryDf)
+            
+            plt.title(f'BoxPlots of edges using uni and multi variate imputation methods with missing {keep_mode}s')
+            png_file = f'edges_unimultivariate_{keep_mode}.png'
+            plt.savefig(png_file, format='png', dpi=300, bbox_inches='tight')
+            if interactive: plt.show()
+            else: plt.close()  
+
+            ## ESMean plots
+
+            plt.figure(figsize=(10, 6))
+            sns.boxplot(x='proportion', y='ESMean', 
+                        hue='imputeMethod', 
+                        hue_order=hue_order,
+                        data=summaryDf)
+            plt.title(f'BoxPlots of ESMean using Different imputation methods with {keep_mode}')
+            png_file = f'esmean_{keep_mode}.png'
+            plt.savefig(png_file, format='png', dpi=300, bbox_inches='tight')
+            if interactive: plt.show()
+            else: plt.close()  
+            
+            # create the plots
+            plt.figure(figsize=(10, 6))
+            ax = sns.boxplot(x='proportion', y='diceCoeff', 
+                        hue='imputeMethod', 
+                        hue_order=hue_order,
+                        data=summaryDf)
+            
+            
+            # attempt to create separation with box plots for a proportion
+            # # Get the positions of the boxes
+            # positions = ax.get_xticks() 
+
+            # # Shift the positions of boxes after 'mean'
+            # # 'total_variance' is at index 3 and those after should be shifted
+            # # positions[3:] = [pos + gap for pos in positions[3:]] 
+
+            # # # Set the new positions of the boxes
+            # # ax.set_xticks(positions)
+            
+            # # Calculate the desired gap (adjust as needed)
+            # gap = 0.3 
+
+            # # Calculate the number of hue levels
+            # n_hue_levels = len(hue_order)
+
+            # # Calculate the offset for each hue level
+            # offsets = np.linspace(-gap/2, gap/2, n_hue_levels)
+
+            # # Adjust the positions of the boxes for each x-value
+            # for i, x_pos in enumerate(positions):
+            #     new_positions = x_pos + offsets
+            #     # Apply the gap only between 'mean' and 'total_variance'
+            #     new_positions[3] += gap / 2  # Adjust 'total_variance' position
+            #     new_positions[2] -= gap / 2  # Adjust 'mean' position
+
+            #     # Update the positions of the boxes using the correct artist
+            #     for j in range(n_hue_levels):  # Iterate through hue levels
+            #         artist_index = i * n_hue_levels + j  # Calculate the correct artist index
+            #         if artist_index < len(ax.artists):  # Check if the index is valid
+            #             ax.artists[artist_index].set_xdata(new_positions[j]) 
+
+            
+            plt.title(f'BoxPlots of edges using univariate imputation methods with missing {keep_mode}s')
+            png_file = f'edges_{keep_mode}.png'
+            plt.savefig(png_file, format='png', dpi=300, bbox_inches='tight')
+            if interactive: plt.show()
+            else: plt.close()   
 
 
-                plt.figure(figsize=(10, 6))
-                sns.boxplot(x='proportion', y='ESMean', hue='imputeMethod', data=summaryDf)
-                plt.title(f'BoxPlots of ESMean using Different imputation methods with {keep_mode}')
-                png_file = f'esmean_{keep_mode}.png'
-                plt.savefig(png_file, format='png', dpi=300, bbox_inches='tight')
-                if interactive: plt.show()
-                else: plt.close()  
+            plt.figure(figsize=(10, 6))
+            sns.boxplot(x='proportion', y='ESMean', 
+                        hue='imputeMethod', 
+                        hue_order=hue_order,
+                        data=summaryDf)
+            plt.title(f'BoxPlots of ESMean using Different imputation methods with {keep_mode}')
+            png_file = f'esmean_{keep_mode}.png'
+            plt.savefig(png_file, format='png', dpi=300, bbox_inches='tight')
+            if interactive: plt.show()
+            else: plt.close()  
                                 
     def summarize_estimates(self, df):
         """
@@ -992,7 +1137,7 @@ if __name__ == "__main__":
         with open('resampled_models.csv', 'w') as f:
             summaryDf.to_csv(f, index=False)
     elif args.cmd == 'impute':
-        summaryDf = m.impute(iterations=10)
+        summaryDf = m.impute(iterations=50)
         # save to file
         with open('imputed_models.csv', 'w') as f:
             summaryDf.to_csv(f, index=False)
