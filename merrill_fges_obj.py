@@ -20,6 +20,7 @@ import cvxpy as cp
 from typing import Tuple
 
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.impute import KNNImputer
 
 from run_tetrad import TetradWrap
 
@@ -190,7 +191,7 @@ class MerrillFGES:
         
         return rows, cols
     
-    def impute_df(self, df: pd.DataFrame, df_nan: pd.DataFrame, mode: int ='median') \
+    def impute_df(self, df: pd.DataFrame, df_nan: pd.DataFrame, mode: str ='median') \
                     -> Tuple[pd.DataFrame, float]:
         """
         Impute the data using the mode provided
@@ -220,6 +221,8 @@ class MerrillFGES:
                 df_new[col] = df_new[col].fillna(df[col].mean())
         elif mode == 'total_variance':
             df_new, obj_value = self.run_total_variance(df_nan)
+        elif mode == 'knn':
+            df_new = self.run_knn_imputer(df_nan)
         elif mode == 'dropna':
             df_new = df_nan.dropna()
         else:
@@ -248,7 +251,7 @@ class MerrillFGES:
             df_any, rows_cols = self.resample_df(df, keep_prop=proportion, keep_mode='any')
             
             # test the impute with mode
-            df_row_median,  = self.impute_df(df, df_row, mode='median')
+            df_row_median  = self.impute_df(df, df_row, mode='median')
             df_any_median = self.impute_df(df, df_any, mode='median')
             df_row_mean = self.impute_df(df, df_row, mode='mean')
             df_any_mean = self.impute_df(df, df_any, mode='mean')
@@ -257,11 +260,19 @@ class MerrillFGES:
             df_row_tv, row_tv_value = self.run_total_variance(df_row)
             df_any_tv, any_tv_value = self.run_total_variance(df_any)
             
+            # run the impute with knn
+            df_row_knn = self.run_knn_imputer(df_row)
+            df_any_knn = self.run_knn_imputer(df_any)
+            
             # metric using cosine similarity to compare df and df_row_tv
             df_row_tv_sim = self.compare_df(df, df_row_tv)
             df_any_tv_sim = self.compare_df(df, df_any_tv)
             df_row_median_sim = self.compare_df(df, df_row_median)
             df_any_median_sim = self.compare_df(df, df_any_median)
+            df_row_mean_sim = self.compare_df(df, df_row_mean)
+            df_any_mean_sim = self.compare_df(df, df_any_mean)
+            df_row_knn_sim = self.compare_df(df, df_row_knn)
+            df_any_knn_sim = self.compare_df(df, df_any_knn)
             
             break
         pass
@@ -495,6 +506,29 @@ class MerrillFGES:
         return list(selected_indices[0], selected_indices[1]), selected_values, df_with_na
 
 
+    def run_knn_imputer(self, df: pd.DataFrame, k: int = 3) -> pd.DataFrame:
+        """
+        Use the k-Nearest Neighbors imputer to fill the
+        sparse matrix given in df
+        where the NA values represent the missing data.
+
+        Args:
+            df: The sparse matrix with missing data represented as NA values.
+            k: The number of neighbors to use for imputation.
+
+        Returns:
+            The filled matrix.
+        """
+        # Create the imputer
+        imputer = KNNImputer(n_neighbors=k)
+        # Fill the sparse matrix
+        filled_matrix = imputer.fit_transform(df)
+        # Convert the numpy array to a DataFrame
+        filled_df = pd.DataFrame(filled_matrix)
+        # Add the column names from the original DataFrame
+        filled_df.columns = df.columns
+        return filled_df
+    
     def run_total_variance(self, df: pd.DataFrame)-> tuple[pd.DataFrame, float]:
         """
         Use the total variance method to fill the
@@ -628,7 +662,7 @@ class MerrillFGES:
         
         
         for keep_mode in ['row', ]:
-            for imputeMethod in ['median', 'mean', 'total_variance']:
+            for imputeMethod in ['median', 'mean', 'total_variance','knn']:
                 
                 if self.config['verbose'] > 0: print(f"Creating plots for {imputeMethod} and {keep_mode}")
                 summaryDf = df[(df['keepMode'] == keep_mode) & (df['imputeMethod'] == imputeMethod)]
@@ -727,7 +761,7 @@ class MerrillFGES:
             df = df.astype({col: "float64" for col in df.columns})
             subj = Path(file).stem.split('_')[1]
             
-            for impute in ['dropna','median', 'mean', 'total_variance',]:
+            for impute in ['dropna','median', 'mean', 'total_variance','knn']:
                 for keep_mode in ['row']:  # leave out any for now
                     if self.config['verbose'] > 0: print(f"Imputing {impute} with {keep_mode}")
                     df_result = self.run_impute_proportions(df, subj,
