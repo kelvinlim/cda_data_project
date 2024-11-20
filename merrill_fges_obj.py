@@ -230,6 +230,8 @@ class MerrillFGES:
             df_new = self.run_knn_imputer(df_nan)
         elif mode == 'mice_sklearn':
             df_new = self.run_mice_sklearn(df_nan)
+        elif mode == 'mice_forest':
+            df_new = self.run_mice_forest(df_nan)
         elif mode == 'dropna':
             df_new = df_nan.dropna()
         else:
@@ -407,12 +409,18 @@ class MerrillFGES:
 
         for proportion in [1.0,0.9,0.8,0.7,0.6,0.5,0.4]:
             for iteration in range(iterations):
+                
+                # continue if proportion is 1.0 and impute == 'mice_forest'
+                if proportion == 1.0 and impute == 'mice_forest':
+                    continue
+                
                 if self.config['verbose'] > 1: 
                     print(f"Subj: {subj} Proportion: {proportion} Iteration: {iteration+1} Imputation: {impute} Keep Mode: {keep_mode}")
                 # resample the dataframe based on proportion
                 df_temp, rows = self.resample_df(df, keep_prop=proportion, keep_mode=keep_mode)
                 
                 # impute the data
+                
                 df_imputed, similarity = self.impute_df(df, df_temp, mode=impute)
                 
                 # run the model
@@ -438,14 +446,16 @@ class MerrillFGES:
                 ESStd = estimates['std_abs_estimates']
                 
                 if proportion==1.0:
-                    fullEdges = setEdges.copy()  # full edges from 100%
-                    fullNodes = setNodes.copy()
-                    fullPairs = setPairs.copy()
+                    # save in the object so it can be used with mice_forest
+                    # which can't run without NaN values
+                    self.fullEdges = setEdges.copy()  # full edges from 100%
+                    self.fullNodes = setNodes.copy()
+                    self.fullPairs = setPairs.copy()
                     
                 # calculate the dice coefficient
-                diceCoeff = self.dice_coefficient(fullEdges,setEdges)
-                diceCoeffNode = self.dice_coefficient(fullNodes,setNodes)
-                diceCoeffPair = self.dice_coefficient(fullPairs,setPairs)
+                diceCoeff = self.dice_coefficient(self.fullEdges,setEdges)
+                diceCoeffNode = self.dice_coefficient(self.fullNodes,setNodes)
+                diceCoeffPair = self.dice_coefficient(self.fullPairs,setPairs)
                 if verbose > 0 : print(f"Proportion: {proportion} Iteration: {iteration+1} diceCoeff: {diceCoeff}")
                 
                 # load into lists
@@ -525,15 +535,22 @@ class MerrillFGES:
             The filled matrix.
         """
         # Create a MiceImputer object
-        kernel = mf.ImputationKernel(
-        df,
-        datasets=5,  # Number of imputed datasets
-        save_all_iterations=True,
-        random_state=1991
-        )
+        kernel = mf.ImputationKernel(df,
+                                        num_datasets=5,  # Number of imputed datasets
+                                        save_all_iterations_data=False,
+                                        random_state=1991
+                                        )
 
         # Run the MICE algorithm
-        kernel.mice(iterations=5)  # Number of iterations
+        # kernel.mice(5)  # Number of iterations
+        # Run the MICE algorithm
+        for i in range(5):
+            # diagnostics, error was suggesting problem with columns
+            # but actual problem is that error is generated if there are no
+            # missing values
+            #print(f"Iteration {i+1} - Before imputation: {kernel.column_names}")
+            kernel.mice(1)
+            #print(f"Iteration {i+1} - After imputation: {kernel.column_names}")
 
         # Get the completed dataset (mean imputation)
         df_imputed = kernel.complete_data(dataset=0)  # You can select different datasets
@@ -664,7 +681,7 @@ class MerrillFGES:
         
         return problem, X
         
-    def create_plots(self, summaryDf):
+    def create_plots(self, summaryDf, interactive=False):
 
         plt.ioff()  # Turn off interactive mode
         # create the plots
@@ -672,26 +689,30 @@ class MerrillFGES:
         sns.violinplot(x='proportion', y='diceCoeff', data=summaryDf)
         plt.title(f'Violin Plots at Different Resampling  Proportions for edges')
         plt.savefig('edges.png', format='png', dpi=300, bbox_inches='tight')
-        plt.show()
+        if interactive: plt.show()
+        else: plt.close()  
 
         plt.figure(figsize=(10, 6))
         sns.violinplot(x='proportion', y='diceCoeffNodes', data=summaryDf)
         plt.title(f'Violin Plots at Different Resampling  Proportions for nodes')
         plt.savefig('nodes.png', format='png', dpi=300, bbox_inches='tight')
-        plt.show()
+        if interactive: plt.show()
+        else: plt.close() 
 
         plt.figure(figsize=(10, 6))
         sns.violinplot(x='proportion', y='diceCoeffPairs', data=summaryDf)
         plt.title(f'Violin Plots at Different Resampling  Proportions for pairs')
         plt.savefig('pairs.png', format='png', dpi=300, bbox_inches='tight')
-        plt.show()
+        if interactive: plt.show()
+        else: plt.close() 
 
         # ES mean
         plt.figure(figsize=(10, 6))
         sns.violinplot(x='proportion', y='ESMean', data=summaryDf)
         plt.title(f'Violin Plots at Different Resampling  Proportions for ESMean')
         plt.savefig('esmean.png', format='png', dpi=300, bbox_inches='tight')
-        plt.show()
+        if interactive: plt.show()
+        else: plt.close() 
 
         # ES mean box
         plt.figure(figsize=(10, 6))
@@ -701,7 +722,8 @@ class MerrillFGES:
                     data=summaryDf)
         plt.title(f'Box Plots at Different Resampling  Proportions for ESMean')
         plt.savefig('esmean_cases_box.png', format='png', dpi=300, bbox_inches='tight')
-        plt.show()
+        if interactive: plt.show()
+        else: plt.close() 
 
         plt.figure(figsize=(10, 6))
         sns.violinplot(x='proportion', y='ESMean',  
@@ -710,23 +732,37 @@ class MerrillFGES:
                     data=summaryDf)
         plt.title(f'Box Plots at Different Resampling  Proportions for ESMean')
         plt.savefig('esmean_cases_violin.png', format='png', dpi=300, bbox_inches='tight')
-        plt.show()                
+        if interactive: plt.show()
+        else: plt.close()               
         # ES std
         plt.figure(figsize=(10, 6))
         sns.violinplot(x='proportion', y='ESStd', data=summaryDf)
         plt.title(f'Violin Plots at Different Resampling  Proportions for ESStd')
         plt.savefig('esstd.png', format='png', dpi=300, bbox_inches='tight')
-        plt.show()
+        if interactive: plt.show()
+        else: plt.close() 
 
-        # edge by case
+        # ES mean box
         plt.figure(figsize=(10, 6))
-        sns.violinplot(x='proportion', y='diceCoeff', 
+        sns.boxplot(x='proportion', y='ESMean', 
+                    hue='case',
+                    palette='bright',
+                    data=summaryDf)
+        plt.title(f'Box Plots at Different Resampling  Proportions for edge strength means')
+        plt.savefig('esmean_cases_box.png', format='png', dpi=300, bbox_inches='tight')
+        if interactive: plt.show()
+        else: plt.close() 
+
+        # ES std box
+        plt.figure(figsize=(10, 6))
+        sns.boxplot(x='proportion', y='ESStd', 
                        hue='case',
                        palette='bright',
                        data=summaryDf)
-        plt.title(f'Violin Plots at Different Resampling  Proportions for edges')
-        plt.savefig('edges_cases_violin.png', format='png', dpi=300, bbox_inches='tight')
-        plt.show()
+        plt.title(f'Box Plots at Different Resampling  Proportions for edge strength stddev')
+        plt.savefig('esstd_cases_box.png', format='png', dpi=300, bbox_inches='tight')
+        if interactive: plt.show()
+        else: plt.close() 
 
         # edge by case
         plt.figure(figsize=(10, 6))
@@ -736,7 +772,8 @@ class MerrillFGES:
                        data=summaryDf)
         plt.title(f'Box Plots at Different Resampling  Proportions for edges')
         plt.savefig('edges_cases_box.png', format='png', dpi=300, bbox_inches='tight')
-        plt.show()
+        if interactive: plt.show()
+        else: plt.close() 
                 
     def create_plots_impute(self, df, interactive=False):
 
@@ -749,7 +786,8 @@ class MerrillFGES:
         
         
         for keep_mode in ['row' ]:
-            for imputeMethod in ['median', 'mean', 'total_variance','knn','mice_sklearn','dropna']:
+            for imputeMethod in ['median', 'mean', 'total_variance','knn',
+                                 'mice_sklearn','mice_forest','dropna']:
                 
                 if self.config['verbose'] > 0: print(f"Creating plots for {imputeMethod} and {keep_mode}")
                 summaryDf = df[(df['keepMode'] == keep_mode) & (df['imputeMethod'] == imputeMethod)]
@@ -848,8 +886,13 @@ class MerrillFGES:
             df = df.astype({col: "float64" for col in df.columns})
             subj = Path(file).stem.split('_')[1]
             
-            for impute in ['dropna','median', 'mean', 'total_variance','knn','mice_sklearn',]:
-                for keep_mode in ['row',]:  # leave out any for now
+            for impute in ['dropna',
+                        'mice_forest',
+                           'median', 'mean', 'total_variance','knn',
+                           'mice_sklearn',]:
+                for keep_mode in ['row',
+                                  #'any',
+                                  ]:  # leave out any for now
                     # error with any 
                     # self.java = alg.search(self.data, self.params)
                     # Exception has occurred: java.lang.ArrayIndexOutOfBoundsException
