@@ -29,11 +29,12 @@ from run_tetrad import TetradWrap
 
 NUM_ITERATIONS = 100
 
-__version_info__ = ('0', '1', '2')
+__version_info__ = ('0', '1', '3')
 __version__ = '.'.join(__version_info__)
 
 version_history = \
 """
+0.1.3 - added plots
 0.1.2 - added knn, mice_sklearn, miceforest impute methods
 0.1.1 - added impute methods
 0.1.0 - initial version  
@@ -694,11 +695,22 @@ class MerrillFGES:
 
         # ES mean box
         plt.figure(figsize=(10, 6))
-        sns.boxplot(x='proportion', y='ESMean', hue='case', data=summaryDf)
-        plt.title(f'Violin Plots at Different Resampling  Proportions for ESMean')
-        plt.savefig('esmean_box.png', format='png', dpi=300, bbox_inches='tight')
+        sns.boxplot(x='proportion', y='ESMean', 
+                    hue='case',
+                    palette='bright',
+                    data=summaryDf)
+        plt.title(f'Box Plots at Different Resampling  Proportions for ESMean')
+        plt.savefig('esmean_cases_box.png', format='png', dpi=300, bbox_inches='tight')
         plt.show()
-                
+
+        plt.figure(figsize=(10, 6))
+        sns.violinplot(x='proportion', y='ESMean',  
+                    hue='case',
+                    palette='bright',
+                    data=summaryDf)
+        plt.title(f'Box Plots at Different Resampling  Proportions for ESMean')
+        plt.savefig('esmean_cases_violin.png', format='png', dpi=300, bbox_inches='tight')
+        plt.show()                
         # ES std
         plt.figure(figsize=(10, 6))
         sns.violinplot(x='proportion', y='ESStd', data=summaryDf)
@@ -706,6 +718,26 @@ class MerrillFGES:
         plt.savefig('esstd.png', format='png', dpi=300, bbox_inches='tight')
         plt.show()
 
+        # edge by case
+        plt.figure(figsize=(10, 6))
+        sns.violinplot(x='proportion', y='diceCoeff', 
+                       hue='case',
+                       palette='bright',
+                       data=summaryDf)
+        plt.title(f'Violin Plots at Different Resampling  Proportions for edges')
+        plt.savefig('edges_cases_violin.png', format='png', dpi=300, bbox_inches='tight')
+        plt.show()
+
+        # edge by case
+        plt.figure(figsize=(10, 6))
+        sns.boxplot(x='proportion', y='diceCoeff', 
+                       hue='case',
+                       palette='bright',
+                       data=summaryDf)
+        plt.title(f'Box Plots at Different Resampling  Proportions for edges')
+        plt.savefig('edges_cases_box.png', format='png', dpi=300, bbox_inches='tight')
+        plt.show()
+                
     def create_plots_impute(self, df, interactive=False):
 
         """
