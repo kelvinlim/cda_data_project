@@ -938,40 +938,6 @@ class MerrillFGES:
                         data=summaryDf)
             
             
-            # attempt to create separation with box plots for a proportion
-            # # Get the positions of the boxes
-            # positions = ax.get_xticks() 
-
-            # # Shift the positions of boxes after 'mean'
-            # # 'total_variance' is at index 3 and those after should be shifted
-            # # positions[3:] = [pos + gap for pos in positions[3:]] 
-
-            # # # Set the new positions of the boxes
-            # # ax.set_xticks(positions)
-            
-            # # Calculate the desired gap (adjust as needed)
-            # gap = 0.3 
-
-            # # Calculate the number of hue levels
-            # n_hue_levels = len(hue_order)
-
-            # # Calculate the offset for each hue level
-            # offsets = np.linspace(-gap/2, gap/2, n_hue_levels)
-
-            # # Adjust the positions of the boxes for each x-value
-            # for i, x_pos in enumerate(positions):
-            #     new_positions = x_pos + offsets
-            #     # Apply the gap only between 'mean' and 'total_variance'
-            #     new_positions[3] += gap / 2  # Adjust 'total_variance' position
-            #     new_positions[2] -= gap / 2  # Adjust 'mean' position
-
-            #     # Update the positions of the boxes using the correct artist
-            #     for j in range(n_hue_levels):  # Iterate through hue levels
-            #         artist_index = i * n_hue_levels + j  # Calculate the correct artist index
-            #         if artist_index < len(ax.artists):  # Check if the index is valid
-            #             ax.artists[artist_index].set_xdata(new_positions[j]) 
-
-            
             plt.title(f'BoxPlots of edges using univariate imputation methods with missing {keep_mode}s')
             png_file = f'edges_{keep_mode}.png'
             plt.savefig(png_file, format='png', dpi=300, bbox_inches='tight')
@@ -1008,7 +974,10 @@ class MerrillFGES:
     def compute(self):
         summaryDf = None
 
-        for file in ["data/sub_1008.csv","data/sub_1019.csv","data/sub_1033.csv"]:
+        for file in ["data/sub_1008.csv",
+                     "data/sub_1019.csv",
+                     "data/sub_1033.csv",
+                     "data/sub_1112.csv",]:
             df = pd.read_csv(file, sep=",")
             df = df.astype({col: "float64" for col in df.columns})
             subj = Path(file).stem.split('_')[1]
@@ -1026,7 +995,8 @@ class MerrillFGES:
     def impute(self, iterations=NUM_ITERATIONS):
         summaryDf = None
 
-        for file in ["data/sub_1008.csv","data/sub_1019.csv","data/sub_1033.csv"]:
+        for file in ["data/sub_1008.csv","data/sub_1019.csv",
+                     "data/sub_1033.csv", "data/sub_1112.csv",]:
             df = pd.read_csv(file, sep=",")
             df = df.astype({col: "float64" for col in df.columns})
             subj = Path(file).stem.split('_')[1]
