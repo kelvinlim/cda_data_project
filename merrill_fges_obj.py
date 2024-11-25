@@ -879,11 +879,36 @@ class MerrillFGES:
             
             plt.title(f'BoxPlots of edges using univariate imputation methods with missing {keep_mode}s')
             png_file = f'edges_univariate_{keep_mode}.png'
-            plt.savefig(png_file, format='png', dpi=300, bbox_inches='tight')
+            plt.savefig(self.prepend_dir(png_file), format='png', dpi=300, bbox_inches='tight')
+            if interactive: plt.show()
+            else: plt.close()  
+            
+        # plot multiple impute methods on same plot as hue
+        for keep_mode in ['row', ]:
+
+            if self.config['verbose'] > 0: print(f"Creating plots for {keep_mode}")
+            
+            summaryDf = df[(df['keepMode'] == keep_mode) ]
+            
+       
+            # create the plots
+            hue_order = ['dropna','median', 'mean', 
+                         #'total_variance','knn',  'mice_forest','mice_sklearn',
+                         ]     
+            plt.figure(figsize=(10, 6))
+            ax = sns.boxplot(x='proportion', y='ESMean', 
+                        hue='imputeMethod', 
+                        hue_order=hue_order,
+                        data=summaryDf)
+            
+            plt.title(f'BoxPlots of edge strength using univariate imputation methods with missing {keep_mode}s')
+            png_file = f'esmean_univariate_{keep_mode}.png'
+            plt.savefig(self.prepend_dir(png_file), format='png', dpi=300, bbox_inches='tight')
             if interactive: plt.show()
             else: plt.close()   
 
             # create the multivariate plots
+            # edges
             hue_order = ['dropna',
                          # 'median', 'mean', 
                          'total_variance','knn',  'mice_forest','mice_sklearn',
@@ -896,9 +921,27 @@ class MerrillFGES:
             
             plt.title(f'BoxPlots of edges using multivariate imputation methods with missing {keep_mode}s')
             png_file = f'edges_multivariate_{keep_mode}.png'
-            plt.savefig(png_file, format='png', dpi=300, bbox_inches='tight')
+            plt.savefig(self.prepend_dir(png_file), format='png', dpi=300, bbox_inches='tight')
             if interactive: plt.show()
             else: plt.close()   
+
+            # edge strength
+            hue_order = ['dropna',
+                         # 'median', 'mean', 
+                         'total_variance','knn',  'mice_forest','mice_sklearn',
+                         ]     
+            plt.figure(figsize=(10, 6))
+            ax = sns.boxplot(x='proportion', y='ESMean', 
+                        hue='imputeMethod', 
+                        hue_order=hue_order,
+                        data=summaryDf)
+            
+            plt.title(f'BoxPlots of edge strength using multivariate imputation methods with missing {keep_mode}s')
+            png_file = f'esmean_multivariate_{keep_mode}.png'
+            plt.savefig(self.prepend_dir(png_file),format='png', dpi=300, bbox_inches='tight')
+            if interactive: plt.show()
+            else: plt.close()   
+
 
             # create the combined univariate and multivariate plots
             hue_order = ['dropna',
@@ -913,9 +956,28 @@ class MerrillFGES:
             
             plt.title(f'BoxPlots of edges using uni and multi variate imputation methods with missing {keep_mode}s')
             png_file = f'edges_unimultivariate_{keep_mode}.png'
-            plt.savefig(png_file, format='png', dpi=300, bbox_inches='tight')
+            plt.savefig(self.prepend_dir(png_file), format='png', dpi=300, bbox_inches='tight')
             if interactive: plt.show()
             else: plt.close()  
+            
+
+            # create the combined univariate and multivariate plots
+            # edge strength
+            hue_order = ['dropna',
+                         'median', 'mean', 
+                         'total_variance','knn',  'mice_forest','mice_sklearn',
+                         ]     
+            plt.figure(figsize=(10, 6))
+            ax = sns.boxplot(x='proportion', y='ESMean', 
+                        hue='imputeMethod', 
+                        hue_order=hue_order,
+                        data=summaryDf)
+            
+            plt.title(f'BoxPlots of edge strength using uni and multi variate imputation methods with missing {keep_mode}s')
+            png_file = f'esmean_unimultivariate_{keep_mode}.png'
+            plt.savefig(self.prepend_dir(png_file), format='png', dpi=300, bbox_inches='tight')
+            if interactive: plt.show()
+            else: plt.close()             
 
             ## ESMean plots
 
@@ -944,7 +1006,7 @@ class MerrillFGES:
             if interactive: plt.show()
             else: plt.close()   
 
-
+            ############
             plt.figure(figsize=(10, 6))
             sns.boxplot(x='proportion', y='ESMean', 
                         hue='imputeMethod', 
@@ -952,10 +1014,15 @@ class MerrillFGES:
                         data=summaryDf)
             plt.title(f'BoxPlots of ESMean using Different imputation methods with {keep_mode}')
             png_file = f'esmean_{keep_mode}.png'
-            plt.savefig(png_file, format='png', dpi=300, bbox_inches='tight')
+            plt.savefig(png_file,
+                        format='png', dpi=300, bbox_inches='tight')
             if interactive: plt.show()
             else: plt.close()  
                                 
+    # prepend directory to filename
+    def prepend_dir(self, filename, output_dir='Figures'):
+        return os.path.join(output_dir, filename)
+    
     def summarize_estimates(self, df):
         """
         Summarize the estimates

@@ -21,6 +21,11 @@ Stored in data directory
 3. sub_1033 has 93 rows and  10(direct)/10 edges
 4. sub_1112 has 89 rows and 9(direct)/15 edges 
 
+
+## code for stats
+
+run_stats.ipynb
+
 ## support for miceforest
 
 Needed the libgomp library.
