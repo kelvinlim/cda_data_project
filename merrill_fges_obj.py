@@ -1021,6 +1021,8 @@ class MerrillFGES:
                                 
     # prepend directory to filename
     def prepend_dir(self, filename, output_dir='Figures'):
+        # make the output_dir
+        os.makedirs(output_dir, exist_ok=True)
         return os.path.join(output_dir, filename)
     
     def summarize_estimates(self, df):
