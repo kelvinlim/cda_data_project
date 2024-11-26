@@ -723,7 +723,7 @@ class MerrillFGES:
                     palette='bright',
                     data=summaryDf)
         plt.title(f'Box Plots at Different Resampling  Proportions for ESMean')
-        plt.savefig('esmean_cases_box.png', format='png', dpi=300, bbox_inches='tight')
+        plt.savefig(self.prepend_dir('esmean_cases_box.png'), format='png', dpi=300, bbox_inches='tight')
         if interactive: plt.show()
         else: plt.close() 
 
@@ -773,7 +773,7 @@ class MerrillFGES:
                        palette='bright',
                        data=summaryDf)
         plt.title(f'Box Plots at Different Resampling  Proportions for edges')
-        plt.savefig('edges_cases_box.png', format='png', dpi=300, bbox_inches='tight')
+        plt.savefig(self.prepend_dir('edges_cases_box.png'), format='png', dpi=300, bbox_inches='tight')
         if interactive: plt.show()
         else: plt.close() 
                 
