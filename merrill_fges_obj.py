@@ -687,35 +687,18 @@ class MerrillFGES:
 
         plt.ioff()  # Turn off interactive mode
         # create the plots
+        
+        # edge by case
         plt.figure(figsize=(10, 6))
-        sns.violinplot(x='proportion', y='diceCoeff', data=summaryDf)
-        plt.title(f'Violin Plots at Different Resampling  Proportions for edges')
-        plt.savefig('edges.png', format='png', dpi=300, bbox_inches='tight')
+        sns.boxplot(x='proportion', y='diceCoeff', 
+                       hue='case',
+                       palette='bright',
+                       data=summaryDf)
+        plt.title(f'Box Plots at Different Resampling  Proportions for edges')
+        plt.savefig(self.prepend_dir('edges_cases_box.png'), format='png', dpi=300, bbox_inches='tight')
         if interactive: plt.show()
-        else: plt.close()  
-
-        plt.figure(figsize=(10, 6))
-        sns.violinplot(x='proportion', y='diceCoeffNodes', data=summaryDf)
-        plt.title(f'Violin Plots at Different Resampling  Proportions for nodes')
-        plt.savefig('nodes.png', format='png', dpi=300, bbox_inches='tight')
-        if interactive: plt.show()
-        else: plt.close() 
-
-        plt.figure(figsize=(10, 6))
-        sns.violinplot(x='proportion', y='diceCoeffPairs', data=summaryDf)
-        plt.title(f'Violin Plots at Different Resampling  Proportions for pairs')
-        plt.savefig('pairs.png', format='png', dpi=300, bbox_inches='tight')
-        if interactive: plt.show()
-        else: plt.close() 
-
-        # ES mean
-        plt.figure(figsize=(10, 6))
-        sns.violinplot(x='proportion', y='ESMean', data=summaryDf)
-        plt.title(f'Violin Plots at Different Resampling  Proportions for ESMean')
-        plt.savefig('esmean.png', format='png', dpi=300, bbox_inches='tight')
-        if interactive: plt.show()
-        else: plt.close() 
-
+        else: plt.close()    
+        
         # ES mean box
         plt.figure(figsize=(10, 6))
         sns.boxplot(x='proportion', y='ESMean', 
@@ -726,6 +709,37 @@ class MerrillFGES:
         plt.savefig(self.prepend_dir('esmean_cases_box.png'), format='png', dpi=300, bbox_inches='tight')
         if interactive: plt.show()
         else: plt.close() 
+                
+        plt.figure(figsize=(10, 6))
+        sns.violinplot(x='proportion', y='diceCoeff', data=summaryDf)
+        plt.title(f'Violin Plots at Different Resampling  Proportions for edges')
+        #plt.savefig('edges.png', format='png', dpi=300, bbox_inches='tight')
+        if interactive: plt.show()
+        else: plt.close()  
+
+        plt.figure(figsize=(10, 6))
+        sns.violinplot(x='proportion', y='diceCoeffNodes', data=summaryDf)
+        plt.title(f'Violin Plots at Different Resampling  Proportions for nodes')
+        #plt.savefig('nodes.png', format='png', dpi=300, bbox_inches='tight')
+        if interactive: plt.show()
+        else: plt.close() 
+
+        plt.figure(figsize=(10, 6))
+        sns.violinplot(x='proportion', y='diceCoeffPairs', data=summaryDf)
+        plt.title(f'Violin Plots at Different Resampling  Proportions for pairs')
+        #plt.savefig('pairs.png', format='png', dpi=300, bbox_inches='tight')
+        if interactive: plt.show()
+        else: plt.close() 
+
+        # ES mean
+        plt.figure(figsize=(10, 6))
+        sns.violinplot(x='proportion', y='ESMean', data=summaryDf)
+        plt.title(f'Violin Plots at Different Resampling  Proportions for ESMean')
+        #plt.savefig('esmean.png', format='png', dpi=300, bbox_inches='tight')
+        if interactive: plt.show()
+        else: plt.close() 
+
+
 
         plt.figure(figsize=(10, 6))
         sns.violinplot(x='proportion', y='ESMean',  
@@ -733,14 +747,15 @@ class MerrillFGES:
                     palette='bright',
                     data=summaryDf)
         plt.title(f'Box Plots at Different Resampling  Proportions for ESMean')
-        plt.savefig('esmean_cases_violin.png', format='png', dpi=300, bbox_inches='tight')
+        #plt.savefig('esmean_cases_violin.png', format='png', dpi=300, bbox_inches='tight')
         if interactive: plt.show()
         else: plt.close()               
+        
         # ES std
         plt.figure(figsize=(10, 6))
         sns.violinplot(x='proportion', y='ESStd', data=summaryDf)
         plt.title(f'Violin Plots at Different Resampling  Proportions for ESStd')
-        plt.savefig('esstd.png', format='png', dpi=300, bbox_inches='tight')
+        #plt.savefig('esstd.png', format='png', dpi=300, bbox_inches='tight')
         if interactive: plt.show()
         else: plt.close() 
 
@@ -751,7 +766,7 @@ class MerrillFGES:
                     palette='bright',
                     data=summaryDf)
         plt.title(f'Box Plots at Different Resampling  Proportions for edge strength means')
-        plt.savefig('esmean_cases_box.png', format='png', dpi=300, bbox_inches='tight')
+        #plt.savefig('esmean_cases_box.png', format='png', dpi=300, bbox_inches='tight')
         if interactive: plt.show()
         else: plt.close() 
 
@@ -762,20 +777,11 @@ class MerrillFGES:
                        palette='bright',
                        data=summaryDf)
         plt.title(f'Box Plots at Different Resampling  Proportions for edge strength stddev')
-        plt.savefig('esstd_cases_box.png', format='png', dpi=300, bbox_inches='tight')
+        #plt.savefig('esstd_cases_box.png', format='png', dpi=300, bbox_inches='tight')
         if interactive: plt.show()
         else: plt.close() 
 
-        # edge by case
-        plt.figure(figsize=(10, 6))
-        sns.boxplot(x='proportion', y='diceCoeff', 
-                       hue='case',
-                       palette='bright',
-                       data=summaryDf)
-        plt.title(f'Box Plots at Different Resampling  Proportions for edges')
-        plt.savefig(self.prepend_dir('edges_cases_box.png'), format='png', dpi=300, bbox_inches='tight')
-        if interactive: plt.show()
-        else: plt.close() 
+
                 
     def create_plots_impute(self, df, interactive=False):
 
