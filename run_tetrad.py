@@ -5,6 +5,8 @@ import textwrap
 import jpype.imports
 import os
 import sys
+import re
+
 import platform
 from pathlib import Path
 import seaborn as sns
@@ -123,13 +125,17 @@ class TetradWrap:
         lines = text.split('\n')
         startFlag=False  # True when we are in the edges, False when not
         for line in lines:
-            if startFlag == False:
-                if "Graph Edges:" in line:
-                    startFlag = True
-                    continue  # continue to next line
-            if startFlag == True:
-                # check if there is edge information a '--'
-                if '--' in line:
+            # check if line begins with a number and period
+            # convert line to python string
+            line = str(line)
+            if re.match(r"^\d+\.", line):
+            # if startFlag == False:
+            #     if "Graph Edges:" in line:
+            #         startFlag = True
+            #         continue  # continue to next line
+            # if startFlag == True:
+                # # check if there is edge information a '--'
+                # if '-' in line:
                     # this is an edge so add to the set
                     # strip out the number in front  1. drinks --> happy
                     # convert to a string
@@ -220,7 +226,7 @@ class TetradWrap:
         std_abs_estimates = abs_estimates.std()
         return {'mean_abs_estimates': mean_abs_estimates, 'std_abs_estimates': std_abs_estimates}
         
-    def edges_to_lavaan(self, edges, exclude_edges = ['---']):
+    def edges_to_lavaan(self, edges, exclude_edges = ['---','<->','o-o']):
         """
         Convert edges to a lavaan string
         """
@@ -231,7 +237,8 @@ class TetradWrap:
             edge_type = edge.split(' ')[1]
             if edge_type in exclude_edges:
                 continue
-            lavaan_model += f"{nodeA} ~ {nodeB}\n"
+            # remember that for lavaan, target ~ source
+            lavaan_model += f"{nodeB} ~ {nodeA}\n"
         return lavaan_model
     
     def run_semopy(self, lavaan_model, data):  
