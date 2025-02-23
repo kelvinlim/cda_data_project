@@ -16,11 +16,26 @@
             ]
         },
         {
+            "name": "run_cda compute ",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "run_cda.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--verbose",
+                "3",
+                "--cmd",
+                "compute"
+            ]
+        },        
+        {
             "name": "merrill_fges compute ",
             "type": "debugpy",
             "request": "launch",
             "program": "merrill_fges_obj.py",
             "console": "integratedTerminal",
+            "justMyCode": false,
             "args": [
                 "--verbose",
                 "3",
