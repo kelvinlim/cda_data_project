@@ -67,7 +67,8 @@ Some notes on installing java on windows without admin
 
 https://javafar.com/java-install-no-admin-rights/
 
-
+For adding dgraph_flex
+git clone https://github.com/kelvinlim/dgraph_flex.git
 
 ## Installing a portable version of jdk
 
