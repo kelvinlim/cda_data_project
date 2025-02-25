@@ -1,5 +1,5 @@
 
-size <- 100
+size <- 10000
 Pill <-rnorm(size)
 Y <- rnorm(size)
 Out <- -0.8*Y + rnorm(size)
@@ -14,4 +14,6 @@ summary(mymodel2)
 mymodel3 <- glm(Out ~ Pill + C)
 summary(mymodel3)
 
+# write out Pill, Out, X, Y, C to csv
+write.csv(data.frame(Pill, Out, X, Y, C), "data.csv")
 
