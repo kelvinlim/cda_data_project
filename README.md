@@ -1,16 +1,16 @@
 # csci5465_project
 
-Code for my csci5465 project.  This project will use the jpype interface 
+Code for my csci5465 project.  This project will use the jpype interface
 to tetrad to speed up processing compared with using causal-cmd.
 
-Possible scenarios are to do analysis of the effect of 
+Possible scenarios are to do analysis of the effect of
 number of samples in ema analysis by comparing the graphs with the
 full dataset and different percentages of sampling such as
 90%, 80% 70%, 60%, 50%.
 
-It would be possible to do this 100 times at each sampling and 
+It would be possible to do this 100 times at each sampling and
 compare the metrics.  The proposed metric would be to use the
-Dice coefficient. 
+Dice coefficient.
 
 Some cases to use with fges
 
@@ -19,8 +19,7 @@ Stored in data directory
 1. sub_1019 has 118 rows and 13(direct)/15 edges
 2. sub_1008 has 100 rows and 7(direct)/13 edges
 3. sub_1033 has 93 rows and  10(direct)/10 edges
-4. sub_1112 has 89 rows and 9(direct)/15 edges 
-
+4. sub_1112 has 89 rows and 9(direct)/15 edges
 
 ## code for stats
 
@@ -37,6 +36,7 @@ brew install libomp
 # ubuntu
 sudo apt-get install libgomp1
 ```
+
 ## Windows installation
 
 Installed java jdk21
@@ -57,6 +57,7 @@ $env:Path += ";$env:JAVA_HOME\bin"
 echo $env:JAVA_HOME
 
 ```
+
 Also need the py-tetrad code, mainly for the tetrad jar file
 
 git clone https://github.com/cmu-phil/py-tetrad.git
@@ -71,26 +72,36 @@ For adding dgraph_flex
 
 git clone https://github.com/kelvinlim/dgraph_flex.git
 
+On macstudio, did 
+
+brew install openjdk@21
+
+If you need to have openjdk@21 first in your PATH, run:
+  echo 'export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"' >> ~/.zshrc
+
+sudo ln -sfn /opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-21.jdk
+
 ## Installing a portable version of jdk
 
 Creating a portable version of the Java SDK 21 for Windows involves downloading the JDK as a ZIP file and setting it up in a way that doesn't require installation. Here are the steps:
 
 1. **Download the JDK ZIP File**:
+
    - Go to the [Oracle JDK 21 download page](https://www.oracle.com/java/technologies/javase/jdk21-archive-downloads.html) or the [OpenJDK 21 download page](https://jdk.java.net/21/).
    - Download the ZIP file for Windows (e.g., `openjdk-21_windows-x64_bin.zip`).
-
 2. **Extract the ZIP File**:
-   - Extract the contents of the ZIP file to a directory where you have write permissions, such as `C:\Users\YourUsername\jdk-21`.
 
+   - Extract the contents of the ZIP file to a directory where you have write permissions, such as `C:\Users\YourUsername\jdk-21`.
 3. **Set Up Environment Variables Temporarily**:
+
    - Open Command Prompt and set the `JAVA_HOME` and `PATH` variables for the current session:
      ```cmd
      set JAVA_HOME=C:\Users\YourUsername\jdk-21
      set PATH=%JAVA_HOME%\bin;%PATH%
      ```
    - These settings will only last for the duration of the Command Prompt session.
-
 4. **Create a Batch File for Convenience**:
+
    - To avoid setting the environment variables every time, you can create a batch file (`set_java_home.bat`) with the following content:
      ```cmd
      @echo off
@@ -99,8 +110,8 @@ Creating a portable version of the Java SDK 21 for Windows involves downloading 
      cmd
      ```
    - Double-clicking this batch file will open a new Command Prompt window with the environment variables set.
-
 5. **Verify the Setup**:
+
    - In the Command Prompt, run:
      ```cmd
      java -version
@@ -126,12 +137,11 @@ Source: Conversation with Copilot, 9/29/2024
 (11) Installation of the JDK on Microsoft Windows Platforms - Oracle Help Center. https://docs.oracle.com/en/java/javase/22/install/installation-jdk-microsoft-windows-platforms.html.
 (12) jdkPortable 64-bit (portable JDK environment) - PortableApps.com. https://portableapps.com/apps/utilities/jdkportable64.
 
-
 ## For windows
+
 AVD
 
 ```
 release = '2019Server'
 system='Windows'
 ```
-
