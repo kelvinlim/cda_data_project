@@ -168,21 +168,30 @@ class TetradWrap:
         ## Use a SEM BIC score
         res =search.use_sem_bic(penalty_discount=1)
 
+        knowledge = {'addtemporal': {
+            2: ['drinks', 'sad', 'irr', 'relax', 'happy', 'energ', 'stress'],
+            1: ['lagdrinks', 'lagsad', 'lagirr', 'lagrelax', 'laghappy', 'lagenerg', 'lagstress']}
+        }
+
+
+        self.load_knowledge(search, knowledge)
+
+
         ## Set knowledge
-        search.add_to_tier(0, "lagdrinks")
-        search.add_to_tier(0, "lagsad")
-        search.add_to_tier(0, "lagirr")
-        search.add_to_tier(0, "lagrelax")
-        search.add_to_tier(0, "laghappy")
-        search.add_to_tier(0, "lagenerg")
-        search.add_to_tier(0, "lagstress")
-        search.add_to_tier(1, "drinks")
-        search.add_to_tier(1, "sad")
-        search.add_to_tier(1, "irr")
-        search.add_to_tier(1, "relax")
-        search.add_to_tier(1, "happy")
-        search.add_to_tier(1, "energ")
-        search.add_to_tier(1, "stress")
+        # search.add_to_tier(0, "lagdrinks")
+        # search.add_to_tier(0, "lagsad")
+        # search.add_to_tier(0, "lagirr")
+        # search.add_to_tier(0, "lagrelax")
+        # search.add_to_tier(0, "laghappy")
+        # search.add_to_tier(0, "lagenerg")
+        # search.add_to_tier(0, "lagstress")
+        # search.add_to_tier(1, "drinks")
+        # search.add_to_tier(1, "sad")
+        # search.add_to_tier(1, "irr")
+        # search.add_to_tier(1, "relax")
+        # search.add_to_tier(1, "happy")
+        # search.add_to_tier(1, "energ")
+        # search.add_to_tier(1, "stress")
 
         # load the data
         x = search.load_df(df)
@@ -212,6 +221,45 @@ class TetradWrap:
         
         return result
 
+    def load_knowledge(self, search, knowledge:dict):
+        """
+        Load the knowledge
+        
+        The standard prior.txt file looks like this:
+        
+        /knowledge
+
+        addtemporal
+        1 Q2_exer_intensity_ Q3_exer_min_ Q2_sleep_hours_ PANAS_PA_ PANAS_NA_ stressed_ Span3meanSec_ Span3meanAccuracy_ Span4meanSec_ Span4meanAccuracy_ Span5meanSec_ Span5meanAccuracy_ TrailsATotalSec_ TrailsAErrors_ TrailsBTotalSec_ TrailsBErrors_ COV_neuro_ COV_pain_ COV_cardio_ COV_psych_
+        2 Q2_exer_intensity Q3_exer_min Q2_sleep_hours PANAS_PA PANAS_NA stressed Span3meanSec Span3meanAccuracy Span4meanSec Span4meanAccuracy Span5meanSec Span5meanAccuracy TrailsATotalSec TrailsAErrors TrailsBTotalSec TrailsBErrors COV_neuro COV_pain COV_cardio COV_psych
+
+        forbiddirect
+
+        requiredirect
+        
+        The input dict will have the keys of addtemporal, forbiddirect, requiredirect
+        
+        For the addtemporal key, the value will be another dict with the keys of 1, 2, 3, etc.
+        representing the tiers. The values will be a list of the nodes in that tier.
+        
+        Args:
+        search - search object
+        knowledge - dictionary with the knowledge
+        
+        """
+        
+        # check if addtemporal is in the knowledge dict
+        if 'addtemporal' in knowledge:
+            tiers = knowledge['addtemporal']
+            for tier, nodes in tiers.items():
+                # tier is a number, tetrad uses 0 based indexing so subtract 1
+                tier_entry = int(tier) - 1
+                for node in nodes:
+                    search.add_to_tier(tier_entry, node)
+                    pass
+        pass
+        
+        
     def summarize_estimates(self, df):
         """
         Summarize the estimates
@@ -290,8 +338,8 @@ if __name__ == "__main__":
                       default="config.yaml") 
         
     parser.add_argument("--cmd", type = str,
-                    help="cmd - [list, summarize], default list",
-                    default = 'list')
+                    help="cmd - [test], default test",
+                    default = 'test')
 
     parser.add_argument("--format", type = str,
                     help="format to use, default json",
@@ -322,9 +370,9 @@ if __name__ == "__main__":
                     )   
     
     obj.jvm_initialize()
-    obj.test_search()
-
-
-
-
+    
+    if args.cmd == 'test':
+        obj.test_search()
+    
+    
 
