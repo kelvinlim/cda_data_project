@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 
 import argparse
+import json
 import textwrap
 import jpype.imports
 import os
@@ -19,11 +20,12 @@ import tools.translate as tr
 import semopy
 
 
-__version_info__ = ('0', '1', '0')
+__version_info__ = ('0', '1', '1')
 __version__ = '.'.join(__version_info__)
 
 version_history = \
 """
+0.1.1 - refactored to generalize operations with run_model_search
 0.1.0 - initial version  
 """
 
@@ -154,7 +156,7 @@ class TetradWrap:
         return edges, nodes, pairs    
 
     
-    def test_search(self, test_file = "data/sub_1019.csv"):
+    def test_search1(self, test_file = "data/sub_1019.csv"):
         """
         test running a search
         """
@@ -168,6 +170,70 @@ class TetradWrap:
         ## Use a SEM BIC score
         res =search.use_sem_bic(penalty_discount=1)
 
+        # Set knowledge
+        search.add_to_tier(0, "lagdrinks")
+        search.add_to_tier(0, "lagsad")
+        search.add_to_tier(0, "lagirr")
+        search.add_to_tier(0, "lagrelax")
+        search.add_to_tier(0, "laghappy")
+        search.add_to_tier(0, "lagenerg")
+        search.add_to_tier(0, "lagstress")
+        search.add_to_tier(1, "drinks")
+        search.add_to_tier(1, "sad")
+        search.add_to_tier(1, "irr")
+        search.add_to_tier(1, "relax")
+        search.add_to_tier(1, "happy")
+        search.add_to_tier(1, "energ")
+        search.add_to_tier(1, "stress")
+
+        # load the data
+        x = search.load_df(df)
+            
+        ## Run the search
+        x = search.run_fges()
+        soutput = search.get_string()
+        setEdges, setNodes, setPairs = self.extract_edges(soutput)
+        
+        lavaan_model = self.edges_to_lavaan(setEdges)
+        
+        # run semopy
+        sem_results = self.run_semopy(lavaan_model, df)
+        
+        # get the estmates
+        estimates_sem = sem_results['estimates']
+        # change column names lval to dest and rval to src
+        #estimates_sem.rename(columns={'lval': 'dest', 'rval': 'src'}, inplace=True) 
+        
+        # summary of the estimates
+        estimates = self.summarize_estimates(estimates_sem)
+        
+        result = {'setEdges': setEdges, 
+                  'setNodes': setNodes, 
+                  'setPairs': setPairs, 
+                  'ESMean': estimates['mean_abs_estimates'],
+                  'ESStd': estimates['std_abs_estimates'],
+                  'estimatesSEM': estimates_sem
+                  } 
+        
+        return result
+
+    def test_search2(self, test_file = "data/sub_1019.csv"):
+        """
+        test running a search
+        """
+
+       # read in the data file into a pandas df
+        df = self.load_dataframe(test_file)
+        
+        # search = ts.TetradSearch(df)
+        search = self.search_init(df)
+        
+        # load the data into the search object
+        x = search.load_df(df)
+                
+        ## Use a SEM BIC score
+        res =search.use_sem_bic(penalty_discount=1)
+
         knowledge = {'addtemporal': {
             2: ['drinks', 'sad', 'irr', 'relax', 'happy', 'energ', 'stress'],
             1: ['lagdrinks', 'lagsad', 'lagirr', 'lagrelax', 'laghappy', 'lagenerg', 'lagstress']}
@@ -177,25 +243,6 @@ class TetradWrap:
         self.load_knowledge(search, knowledge)
 
 
-        ## Set knowledge
-        # search.add_to_tier(0, "lagdrinks")
-        # search.add_to_tier(0, "lagsad")
-        # search.add_to_tier(0, "lagirr")
-        # search.add_to_tier(0, "lagrelax")
-        # search.add_to_tier(0, "laghappy")
-        # search.add_to_tier(0, "lagenerg")
-        # search.add_to_tier(0, "lagstress")
-        # search.add_to_tier(1, "drinks")
-        # search.add_to_tier(1, "sad")
-        # search.add_to_tier(1, "irr")
-        # search.add_to_tier(1, "relax")
-        # search.add_to_tier(1, "happy")
-        # search.add_to_tier(1, "energ")
-        # search.add_to_tier(1, "stress")
-
-        # load the data
-        x = search.load_df(df)
-            
         ## Run the search
         x = search.run_fges()
         soutput = search.get_string()
@@ -217,10 +264,152 @@ class TetradWrap:
                   'setPairs': setPairs, 
                   'ESMean': estimates['mean_abs_estimates'],
                   'ESStd': estimates['std_abs_estimates'],
+                  'estimatesSEM': estimates_sem
                   } 
         
         return result
 
+    def load_dataframe(self, file) -> pd.DataFrame:
+        """
+        Load a dataframe from a file
+        
+        Args:
+        file - string with the file name
+        
+        Returns:
+        df - pandas dataframe
+        """
+        df = pd.read_csv(file, sep=",")
+        df = df.astype({col: "float64" for col in df.columns})
+        return df
+
+    def test_search3(self, test_file = "data/sub_1019.csv"):
+        """
+        test running a search
+        """
+
+       # read in the data file into a pandas df
+        df = self.load_dataframe(test_file)
+        
+        # search = ts.TetradSearch(df)
+        search = self.search_init(df)
+        
+        # load the data into the search object
+        x = search.load_df(df)
+                
+        ## Use a SEM BIC score
+        res =search.use_sem_bic(penalty_discount=1)
+
+        knowledge = {'addtemporal': {
+            2: ['drinks', 'sad', 'irr', 'relax', 'happy', 'energ', 'stress'],
+            1: ['lagdrinks', 'lagsad', 'lagirr', 'lagrelax', 'laghappy', 'lagenerg', 'lagstress']}
+        }
+
+
+        self.load_knowledge(search, knowledge)
+
+        ## Run the search
+        searchResult = self.run_model_search(df, model='gfci', 
+                                             knowledge=knowledge, 
+                                             score={'sem_bic': {'penalty_discount': 1}},
+                                             test={'fisher_z': {'alpha': .01}})
+        
+        #soutput = search.get_string()
+        #setEdges, setNodes, setPairs = self.extract_edges(soutput)
+        
+        lavaan_model = self.edges_to_lavaan(searchResult['setEdges'])
+        
+        # run semopy
+        sem_results = self.run_semopy(lavaan_model, df)
+        
+        # get the estmates
+        estimates_sem = sem_results['estimates']
+        
+        # summary of the estimates
+        estimates = self.summarize_estimates(estimates_sem)
+        
+        result = {'setEdges': list(searchResult['setEdges']), 
+                  'setNodes': list(searchResult['setNodes']), 
+                  'setPairs': list(searchResult['setPairs']), 
+                  'ESMean': estimates['mean_abs_estimates'],
+                  'ESStd': estimates['std_abs_estimates'],
+                  'estimatesSEM': sem_results['estimatesDict']
+                  } 
+        
+        return result
+
+    def load_dataframe(self, file) -> pd.DataFrame:
+        """
+        Load a dataframe from a file
+        
+        Args:
+        file - string with the file name
+        
+        Returns:
+        df - pandas dataframe
+        """
+        df = pd.read_csv(file, sep=",")
+        df = df.astype({col: "float64" for col in df.columns})
+        return df
+
+    
+    def run_model_search(self, df, model='gfci', 
+                         knowledge=None, 
+                         score=None,
+                         test=None):
+        """
+        Run a search
+        
+        Args:
+        df - pandas dataframe
+        model - string with the model to use, default gfci
+        knowledge - dictionary with the knowledge
+        score - dictionary with the arguments for the score
+            e.g. {"sem_bic": {"penalty_discount": 1}}
+            
+        test - dictionary with the arguments for the test alpha 
+        
+        Returns:
+        result - dictionary with the results
+        """
+        
+        # search = ts.TetradSearch(df)
+        search = self.search_init(df)
+        
+        
+        # check if score is not None
+        if score is not None:  
+            ## Use a SEM BIC score
+            if 'sem_bic' in score:
+                penalty_discount = score['sem_bic']['penalty_discount']
+                res =search.use_sem_bic(penalty_discount=penalty_discount)
+                
+        if test is not None:
+            if 'fisher_z' in test:
+                alpha = test['fisher_z'].get('alpha',.01)
+                search.use_fisher_z(alpha=alpha)
+            
+
+        if knowledge is not None:
+            self.load_knowledge(search, knowledge)
+        
+        ## Run the selected search
+        if model == 'fges':
+            x = search.run_fges()
+        elif model == 'gfci':   
+            x = search.run_gfci()
+            
+
+        soutput = search.get_string()
+        setEdges, setNodes, setPairs = self.extract_edges(soutput)
+        
+        result = {'setEdges': setEdges, 
+                  'setNodes': setNodes, 
+                  'setPairs': setPairs
+                  } 
+        
+        return result
+    
     def load_knowledge(self, search, knowledge:dict):
         """
         Load the knowledge
@@ -308,8 +497,16 @@ class TetradWrap:
         opt_res = model.fit(data)
         estimates = model.inspect()
         stats = semopy.calc_stats(model)
+        
+        # change column names lval to dest and rval to src
+        estimatesRenamed = estimates.rename(columns={'lval': 'dest', 'rval': 'src'})
+        # convert the estimates to a dict using records
+        estimatesDict = estimatesRenamed.to_dict(orient='records')        
 
-        return ({'opt_res': opt_res, 'estimates': estimates, 'stats': stats})
+        return ({'opt_res': opt_res,
+                 'estimates': estimates, 
+                 'estimatesDict': estimatesDict,
+                 'stats': stats})
         
             
 if __name__ == "__main__":
@@ -338,8 +535,8 @@ if __name__ == "__main__":
                       default="config.yaml") 
         
     parser.add_argument("--cmd", type = str,
-                    help="cmd - [test], default test",
-                    default = 'test')
+                    help="cmd - [test1,test2], default test1",
+                    default = 'test1')
 
     parser.add_argument("--format", type = str,
                     help="format to use, default json",
@@ -371,8 +568,19 @@ if __name__ == "__main__":
     
     obj.jvm_initialize()
     
-    if args.cmd == 'test':
-        obj.test_search()
-    
-    
+    if args.cmd == 'test1':
+        obj.test_search1()
+    elif args.cmd == 'test2':
+        result1 = obj.test_search1()
+        result2 = obj.test_search2()  
+        # compare results
+        if result1['setEdges'] == result2['setEdges']:
+            print("setEdges are the same")
+        pass  
+    elif args.cmd == 'test3':
+        results3 = obj.test_search3()
+        # save results into a json file
+        with open('results3.json', 'w') as f:
+            json.dump(results3, f, indent=4)
+        pass
 
