@@ -300,11 +300,11 @@ class TetradWrap:
         ## Use a SEM BIC score
         res =search.use_sem_bic(penalty_discount=1)
 
+
         knowledge = {'addtemporal': {
             2: ['drinks', 'sad', 'irr', 'relax', 'happy', 'energ', 'stress'],
             1: ['lagdrinks', 'lagsad', 'lagirr', 'lagrelax', 'laghappy', 'lagenerg', 'lagstress']}
         }
-
 
         self.load_knowledge(search, knowledge)
 

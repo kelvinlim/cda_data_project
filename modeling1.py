@@ -9,6 +9,8 @@ Out = -0.8 * Y + np.random.normal(0, 1, size)
 X = 0.7 * Pill + 0.83 * Y + np.random.normal(0, 1, size)
 C = 0.94 * X + np.random.normal(0, 1, size)
 
+# write out data to a csv file
+np.savetxt('data.csv', np.column_stack((Out, Pill, X, Y, C)), delimiter=',', header='Out,Pill,X,Y,C', comments='')
 # Model 1: Out ~ Pill
 X1 = sm.add_constant(Pill)  # Add a constant (intercept)
 model1 = sm.OLS(Out, X1).fit()

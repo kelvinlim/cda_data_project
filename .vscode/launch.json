@@ -56,6 +56,21 @@
                 "compute"
             ]
         },        
+
+        {
+            "name": "covid_gfci compute ",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "covid_gfci.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--verbose",
+                "3",
+                "--cmd",
+                "compute"
+            ]
+        },    
         {
             "name": "merrill_fges compute ",
             "type": "debugpy",
