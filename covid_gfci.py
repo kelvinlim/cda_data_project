@@ -29,7 +29,7 @@ import miceforest as mf
 
 from run_tetrad import TetradWrap
 
-NUM_ITERATIONS = 10
+NUM_ITERATIONS = 100
 
 __version_info__ = ('0', '1', '6')
 __version__ = '.'.join(__version_info__)
@@ -1038,7 +1038,7 @@ class CovidGFCI:
             else: plt.close()  
                                 
     # prepend directory to filename
-    def prepend_dir(self, filename, output_dir='FiguresCovid'):
+    def prepend_dir(self, filename, output_dir='FiguresSimdata'):
         # make the output_dir
         os.makedirs(output_dir, exist_ok=True)
         return os.path.join(output_dir, filename)

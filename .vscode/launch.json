@@ -56,7 +56,6 @@
                 "compute"
             ]
         },        
-
         {
             "name": "covid_gfci compute ",
             "type": "debugpy",
@@ -70,7 +69,35 @@
                 "--cmd",
                 "compute"
             ]
+        },  
+        {
+            "name": "simdata_gfci compute ",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "simdata_gfci.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--verbose",
+                "3",
+                "--cmd",
+                "compute"
+            ]
         },    
+        {
+            "name": "simdata_gfci plot",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "simdata_gfci.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--verbose",
+                "3",
+                "--cmd",
+                "plot"
+            ]
+        },   
         {
             "name": "merrill_fges compute ",
             "type": "debugpy",
