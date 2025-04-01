@@ -30,11 +30,12 @@ from run_tetrad import TetradWrap
 
 NUM_ITERATIONS = 100
 
-__version_info__ = ('0', '1', '5')
+__version_info__ = ('0', '1', '6')
 __version__ = '.'.join(__version_info__)
 
 version_history = \
 """
+0.1.6 - compute_relag cmd - do lagging after data resampling
 0.1.5 - uni and multivariate comparison plots
 0.1.4 - got mice_forest working
 0.1.3 - added plots
@@ -299,8 +300,25 @@ class MerrillFGES:
 
         return scalar_similarity
     
-    def run_proportions(self,df, subj, verbose=False):
+    def run_proportions(self,df, subj, verbose=False, relag=False) -> pd.DataFrame:
 
+        """
+        Take data and run the model with different proportions of data
+
+        Args:
+            df (pd.DataFrame): the data frame to run the model on
+            subj (str): the subject name
+            verbose (bool, optional): verbose level. Defaults to False.
+            relag (bool, optional): whether to relag the data. Defaults to False.
+        Returns:
+            pd.DataFrame: the summary dataframe
+        
+        """
+        
+        if relag:
+            # relag the data
+            df = self.relag_dataframe(df)
+            
         # create lists to hold information for creating a df
         caseList = list()
         proportionList = list()
@@ -380,8 +398,37 @@ class MerrillFGES:
 
         return summaryDf
 
+    def relag_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Relag the dataframe by shifting the columns by one row
+
+        Args:
+            df (pd.DataFrame): the dataframe to relag
+
+        Returns:
+            pd.DataFrame: the relagged dataframe
+        """
+        
+        # create a copy of the dataframe
+        df_relag = df.copy()
+        
+        # create additional columns for the lagged variables, naming them  lagdrinks, lagsad, etc.
+        cols_to_lag = ['drinks', 'sad', 'irr', 'relax', 'happy', 'energ', 'stress']
+        # shift by one row
+        for col in cols_to_lag:
+            df_relag[f'lag{col}'] = df_relag[col].shift(1)
+        
+        # drop the first row
+        df_relag = df_relag.dropna()
+        
+        # reset index
+        df_relag = df_relag.reset_index(drop=True)
+        
+        return df_relag
+    
     def run_impute_proportions(self,df, subj, impute = 'median', keep_mode='row', verbose=False,
-                               iterations = NUM_ITERATIONS) -> pd.DataFrame:
+                               iterations = NUM_ITERATIONS,
+                               relag=False) -> pd.DataFrame:
         """
         Run an impute method on the data and then run the model
 
@@ -391,10 +438,16 @@ class MerrillFGES:
             impute (str, optional): the impute method to use. Defaults to 'median'.
             keep_mode (str, optional): the keep mode. Defaults to 'row'.
             verbose (bool, optional): verbose level. Defaults to False.
+            relag (bool, optional): whether to relag the data. Defaults to False.
 
         Returns:
             pd.DataFrame: the summary dataframe
         """
+        
+        if relag:
+            # relag the data
+            df = self.relag_dataframe(df)
+            
         # create lists to hold information for creating a df
         caseList = list()
         imputeList = list()
@@ -537,6 +590,8 @@ class MerrillFGES:
         Returns:
             The filled matrix.
         """
+        # reset the index
+        #df = df.reset_index()
         # Create a MiceImputer object
         kernel = mf.ImputationKernel(df,
                                         num_datasets=5,  # Number of imputed datasets
@@ -1047,7 +1102,7 @@ class MerrillFGES:
         return {'mean_abs_estimates': mean_abs_estimates, 'std_abs_estimates': std_abs_estimates}
      
 
-    def compute(self):
+    def compute(self, relag=False):
         summaryDf = None
 
         for file in ["data/sub_1008.csv",
@@ -1055,9 +1110,12 @@ class MerrillFGES:
                      "data/sub_1033.csv",
                      "data/sub_1112.csv",]:
             df = pd.read_csv(file, sep=",")
+            if relag:
+                # drop the lag columns
+                df = df.drop(columns=[col for col in df.columns if 'lag' in col])
             df = df.astype({col: "float64" for col in df.columns})
             subj = Path(file).stem.split('_')[1]
-            df_result = self.run_proportions(df, subj)
+            df_result = self.run_proportions(df, subj,relag=relag)
 
             # concatenate the dataframes
             if summaryDf is None:
@@ -1068,12 +1126,26 @@ class MerrillFGES:
 
         return summaryDf
 
-    def impute(self, iterations=NUM_ITERATIONS):
+    def impute(self, iterations=NUM_ITERATIONS,relag=False):
+        """
+        Impute the data 
+
+        Args:
+            iterations (_type_, optional): _description_. Defaults to NUM_ITERATIONS.
+            relag (bool, optional): flag to relag the data. Defaults to False.
+
+        Returns:
+            _type_: _description_
+        """
         summaryDf = None
 
         for file in ["data/sub_1008.csv","data/sub_1019.csv",
                      "data/sub_1033.csv", "data/sub_1112.csv",]:
             df = pd.read_csv(file, sep=",")
+            if relag:
+                # drop the lag columns
+                df = df.drop(columns=[col for col in df.columns if 'lag' in col])
+                
             df = df.astype({col: "float64" for col in df.columns})
             subj = Path(file).stem.split('_')[1]
             
@@ -1093,7 +1165,8 @@ class MerrillFGES:
                                                             impute = impute,
                                                             keep_mode=keep_mode,
                                                             verbose = True,
-                                                            iterations=iterations)
+                                                            iterations=iterations,
+                                                            relag=relag)
 
                     # concatenate the dataframes
                     if summaryDf is None:
@@ -1137,7 +1210,7 @@ if __name__ == "__main__":
     #                   default="config.yaml") 
         
     parser.add_argument("--cmd", type = str,
-                    help="cmd - [compute, plot, plotimpute, impute], default compute",
+                    help="cmd - [compute, compute_relag, plot, plotimpute, impute, impute_relag], default compute",
                     default = 'compute')
 
     # parser.add_argument("--format", type = str,
@@ -1182,8 +1255,18 @@ if __name__ == "__main__":
         # save to file
         with open('resampled_models.csv', 'w') as f:
             summaryDf.to_csv(f, index=False)
+    if args.cmd == 'compute_relag':
+        summaryDf = m.compute(relag=True)
+        # save to file
+        with open('resampled_models.csv', 'w') as f:
+            summaryDf.to_csv(f, index=False)
     elif args.cmd == 'impute':
-        summaryDf = m.impute(iterations=50)
+        summaryDf = m.impute(iterations=10)
+        # save to file
+        with open('imputed_models.csv', 'w') as f:
+            summaryDf.to_csv(f, index=False)
+    elif args.cmd == 'impute_relag':
+        summaryDf = m.impute(iterations=10,relag=True)
         # save to file
         with open('imputed_models.csv', 'w') as f:
             summaryDf.to_csv(f, index=False)

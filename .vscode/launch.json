@@ -113,6 +113,20 @@
             ]
         },
         {
+            "name": "merrill_fges compute_relag ",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "merrill_fges_obj.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--verbose",
+                "3",
+                "--cmd",
+                "compute_relag"
+            ]
+        },        
+        {
             "name": "merrill_fges plot",
             "type": "debugpy",
             "request": "launch",
@@ -150,6 +164,19 @@
                 "3",
                 "--cmd",
                 "impute"
+            ]
+        },
+        {
+            "name": "merrill_fges impute_relag",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "merrill_fges_obj.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--verbose",
+                "3",
+                "--cmd",
+                "impute_relag"
             ]
         },
         {
