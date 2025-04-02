@@ -1,11 +1,11 @@
 import jpype.imports
 
-try:
-    #jpype.startJVM(classpath=[f"resources/tetrad-current.jar"])
-    jpype.startJVM(classpath=[f"py-tetrad/pytetrad/resources/tetrad-current.jar"])
+# try:
+#     #jpype.startJVM(classpath=[f"resources/tetrad-current.jar"])
+#     jpype.startJVM(classpath=[f"py-tetrad/pytetrad/resources/tetrad-current.jar"])
     
-except OSError:
-    pass
+# except OSError:
+#     pass
 
 import pandas as pd
 import tools.TetradSearch as ts
